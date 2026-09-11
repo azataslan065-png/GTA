@@ -38,8 +38,12 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 #turler button[aria-pressed=true]{background:var(--teal);border-color:var(--teal);
   color:#0b1a18;font-weight:700}
 
-#oynatma{position:fixed;z-index:4;right:calc(var(--sr) + 14px);bottom:calc(var(--sb) + 84px);
-  display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+/* Üç satır tek sütunda: daha önce ayrı ayrı sabitlenmişlerdi ve
+   varyant şeridi iki satıra taşınca direksiyon sürgüsüyle çakışıyordu. */
+#altbar{position:fixed;z-index:4;left:0;right:0;bottom:calc(var(--sb) + 10px);
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:0 calc(var(--sr) + 10px) 0 calc(var(--sl) + 76px)}
+#oynatma{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center}
 #oynatma .grup{display:flex;gap:1px}
 #oynatma .grup button{padding:7px 12px;font-size:12px;background:rgba(11,13,22,.75);
   border:1px solid rgba(236,233,225,.14);color:var(--dim)}
@@ -51,14 +55,15 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 #direksiyon input{width:112px;accent-color:var(--teal)}
 .kapali{display:none !important}
 
-#serit{position:fixed;z-index:4;left:0;right:0;bottom:calc(var(--sb) + 48px);
-  display:flex;gap:5px;justify-content:center;flex-wrap:wrap;padding:0 14px}
+#serit{display:flex;gap:5px;justify-content:flex-start;flex-wrap:nowrap;
+  max-width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+#serit::-webkit-scrollbar{display:none}
+#serit button{flex:0 0 auto}
 #serit button{padding:5px 10px;font-size:12px;background:rgba(11,13,22,.72);
   border:1px solid rgba(236,233,225,.14);color:var(--dim)}
 #serit button[aria-pressed=true]{border-color:var(--amber);color:var(--amber)}
 
-#araclar{position:fixed;z-index:4;left:0;right:0;bottom:calc(var(--sb) + 10px);
-  display:flex;gap:8px;justify-content:center;padding:0 14px}
+#araclar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 #araclar button{padding:8px 15px;font-size:13px;letter-spacing:.05em;
   border:1px solid rgba(236,233,225,.28)}
 #araclar button.ana{background:var(--amber);color:#141726;border-color:var(--amber);font-weight:700}
@@ -70,12 +75,13 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   background:var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;
   letter-spacing:.3em;color:var(--dim)}
 #yukle.bitti{display:none}
-@media (max-height:400px){ #adi{font-size:20px} #oynatma{bottom:calc(var(--sb) + 78px)} }
+@media (max-height:420px){ #adi{font-size:19px} #altbar{gap:5px}
+  #serit button{padding:4px 8px;font-size:11px} }
 </style>
 </head>
 <body>
 
-<div id="basli"><h1>Model atölyesi</h1><div id="tohum">s2 · tohum —</div></div>
+<div id="basli"><h1>Model atölyesi</h1><div id="tohum">s3 · tohum —</div></div>
 <div id="kunye"><div id="adi">—</div><dl id="kunyeler"></dl></div>
 <div id="ipucu">sürükle: döndür · iki parmak: yakınlaş</div>
 
@@ -85,6 +91,7 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   <button data-tur="insan" aria-pressed="false">İnsan</button>
 </nav>
 
+<div id="altbar">
 <div id="oynatma">
   <div class="grup kapali" id="hareket">
     <button data-mod="dur">Dur</button>
@@ -107,6 +114,7 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   <button class="ana" id="yeniSeri">Yeni seri üret</button>
   <button id="hepsi" aria-pressed="false">Hepsini diz</button>
   <button id="dondur" aria-pressed="true">Dönüşü durdur</button>
+</div>
 </div>
 
 <div id="yukle">Modeller kuruluyor</div>
@@ -748,11 +756,17 @@ function aracUret(id){
 
   const kUz=uz*s.kabinUz, kY=s.kabinY, kayZ=uz*s.kabinKay, ustUz=kUz*s.ustOran;
   parca(g,prizma(en*.96,kUz,en*.80,ustUz,kY,0,-kUz*.05),camM,0,tabanY+s.govdeY,kayZ);
-  parca(g,kutu(en*.78,.09,ustUz*.98),boyaM,0,tabanY+s.govdeY+kY,kayZ-kUz*.05);
-  [-1,1].forEach(sx=>parca(g,kutu(.09,kY,kUz*.96),boyaM,
-    sx*en*.46,tabanY+s.govdeY+kY/2,kayZ));
-  parca(g,kutu(en*.92,kY,.10),boyaM,0,tabanY+s.govdeY+kY/2,kayZ+kUz/2-.05);
-  parca(g,kutu(en*.92,kY,.10),boyaM,0,tabanY+s.govdeY+kY/2,kayZ-kUz/2+.05);
+  parca(g,kutu(en*.81,.08,ustUz*1.02),boyaM,0,tabanY+s.govdeY+kY,kayZ-kUz*.05);
+  /* A ve C direkleri: dört köşede ince ve eğik.
+     Önceki hâlleri kabin boyunca uzanan tam duvarlardı, camları kapatıyordu. */
+  const dirK=.075, ustZ0=kayZ-kUz*.05;
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(p=>{
+    const sx=p[0], sz=p[1];
+    const altX=sx*en*.47, altZ=kayZ+sz*(kUz/2-.05);
+    const ustX=sx*en*.385, ustZ=ustZ0+sz*(ustUz/2-.05);
+    parca(g,prizma(dirK,.17,dirK,.17,kY,ustX-altX,ustZ-altZ),boyaM,
+      altX,tabanY+s.govdeY,altZ);
+  });
 
   if(s.arka==="bagajlı")
     parca(g,prizma(en*.96,uz*.28,en*.92,uz*.26,.28),boyaM,0,tabanY+s.govdeY,-uz*.34);
@@ -784,8 +798,11 @@ function aracUret(id){
   parca(g,kutu(en*.52,.20,.10),kromM,0,tabanY+s.govdeY*.38,uz/2-.02);
   parca(g,kutu(en*.98,.26,.22),siyahM,0,tabanY+.14, uz/2-.09);
   parca(g,kutu(en*.98,.26,.22),siyahM,0,tabanY+.14,-uz/2+.09);
-  [-1,1].forEach(sx=>parca(g,kutu(.26,.13,.10),siyahM,
-    sx*(en/2+.10),tabanY+s.govdeY+kY*.60,kayZ+kUz*.32));
+  [-1,1].forEach(sx=>{
+    const my=tabanY+s.govdeY+kY*.28, mz=kayZ+kUz*.40;
+    parca(g,kutu(.10,.045,.05),siyahM,sx*(en*.48),my,mz);       /* sap */
+    parca(g,kutu(.17,.11,.07),siyahM,sx*(en*.52+.05),my,mz);    /* ayna */
+  });
   if(s.ray) [-1,1].forEach(sx=>parca(g,kutu(.09,.07,ustUz*.82),siyahM,
     sx*en*.30,tabanY+s.govdeY+kY+.07,kayZ-kUz*.05));
   if(taksi){
@@ -1028,7 +1045,7 @@ function uret(yeniTohum){
   }
   etkin=Math.min(etkin,seri.length-1);
   seritCiz(); yerlestir(); kunyeYaz();
-  $("tohum").textContent="s2 · tohum "+tohum;
+  $("tohum").textContent="s3 · tohum "+tohum;
   $("hareket").classList.toggle("kapali",tur!=="insan");
   $("surus").classList.toggle("kapali",tur!=="arac");
   $("direksiyon").classList.toggle("kapali",tur!=="arac");
@@ -1047,11 +1064,18 @@ function kamerayiAyarla(){
   let cap,yuk;
   if(hepsiModu){
     const sut=Math.ceil(Math.sqrt(seri.length));
-    cap=sut*adim()*1.12;
+    cap=sut*adim();
     yuk=Math.max.apply(null,seri.map(m=>m.userData.yukseklik));
   } else { const m=seri[etkin]; if(!m) return;
-    cap=m.userData.capi*1.45; yuk=m.userData.yukseklik; }
-  hedefUzak=Math.max(cap,yuk*1.3)/Math.tan(kamera.fov*Math.PI/360)*.62;
+    cap=m.userData.capi; yuk=m.userData.yukseklik; }
+  /* Hem dikey hem yatay görüş açısına göre hesapla. Eskiden yalnız dikey
+     alınıyordu; telefon dikeyken yatay alan çok daha dar olduğu için
+     model ekrana sığmıyordu. */
+  const dikFov=kamera.fov*Math.PI/180;
+  const yatFov=2*Math.atan(Math.tan(dikFov/2)*kamera.aspect);
+  const dDik=(yuk*1.18)/2/Math.tan(dikFov/2);
+  const dYat=(cap*1.18)/2/Math.tan(yatFov/2);
+  hedefUzak=Math.max(dDik,dYat)*1.22;
   hedefY=yuk*.45;
 }
 let hedefUzak=20, hedefY=3, uzak=30, merkezY=3, aci=.7, egim=.32;
@@ -1064,6 +1088,8 @@ function seritCiz(){
     b.setAttribute("aria-pressed",String(i===etkin));
     b.onclick=()=>{ etkin=i; yerlestir(); seritCiz(); kunyeYaz(); };
     el.appendChild(b);
+    if(i===etkin&&b.scrollIntoView) setTimeout(()=>{
+      try{ b.scrollIntoView({block:"nearest",inline:"center"}); }catch(e){} },0);
   });
 }
 const turAdi=()=>tur==="bina"?"Bina":tur==="arac"?"Araç":"İnsan";
@@ -1133,7 +1159,7 @@ addEventListener("keydown",e=>{
 });
 addEventListener("resize",()=>{
   kamera.aspect=innerWidth/innerHeight; kamera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight); });
+  renderer.setSize(innerWidth,innerHeight); kamerayiAyarla(); });
 
 /* ═════════════ döngü ═════════════ */
 uret((Math.random()*1e9)|0);
