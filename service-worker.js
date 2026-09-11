@@ -1,7 +1,7 @@
 /* Yalıkent — service worker
    Bu dosyanın varlığı önemli: eksik olduğunda Chrome manifest alanlarını
    (özellikle "orientation") yok sayıp eski usul kısayol kuruyor. */
-const CACHE = "yalikent-2026-09-10-B";
+const CACHE = "yalikent-2026-09-11-C";
 
 /* Kurulumda önbelleğe alınacaklar. three.js ve yazı tipleri başka kaynaktan
    geldiği için opak yanıt döner; yine de saklanabilir. */
@@ -9,6 +9,7 @@ const CORE = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./model-galerisi.html",
   "./yalikent-icon-192.png",
   "./yalikent-icon-512.png",
   "./yalikent-icon-maskable.png",
@@ -32,31 +33,51 @@ self.addEventListener("activate", e => {
   );
 });
 
+/* Sayfa istekleri (HTML) için önce ağ, sonra önbellek.
+   Eski hâli her istekte önbelleği öne alıyordu; bu yüzden GitHub'a yüklenen
+   yeni sürüm ilk açılışta görünmüyor, kullanıcı "değişmedi" sanıyordu.
+   Statik varlıklar (ikon, yazı tipi, three.js) hâlâ önce önbellekten gelir. */
+const sayfaMi = req =>
+  req.mode === "navigate" ||
+  (req.headers.get("accept") || "").includes("text/html");
+
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
 
+  if (sayfaMi(req)) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res && res.ok) {
+          const kopya = res.clone();
+          caches.open(CACHE).then(c => c.put(req, kopya)).catch(() => {});
+        }
+        return res;
+      }).catch(() =>
+        caches.match(req).then(hit => hit || caches.match("./index.html"))
+      )
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(req).then(hit => {
       if (hit) {
-        /* arka planda tazele, oyuncu beklemesin */
         fetch(req).then(res => {
           if (res && (res.ok || res.type === "opaque")) {
-            const copy = res.clone();
-            caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+            const kopya = res.clone();
+            caches.open(CACHE).then(c => c.put(req, kopya)).catch(() => {});
           }
         }).catch(() => {});
         return hit;
       }
       return fetch(req).then(res => {
         if (res && (res.ok || res.type === "opaque")) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          const kopya = res.clone();
+          caches.open(CACHE).then(c => c.put(req, kopya)).catch(() => {});
         }
         return res;
-      }).catch(() =>
-        req.mode === "navigate" ? caches.match("./index.html") : Response.error()
-      );
+      }).catch(() => Response.error());
     })
   );
 });
