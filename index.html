@@ -10,7 +10,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./yalikent-icon-192.png">
 <link rel="apple-touch-icon" href="./yalikent-icon-192.png">
-<title>YALIKENT — Açık Dünya v0.5 (2026-09-10-A)</title>
+<title>YALIKENT — Açık Dünya v0.6 (2026-09-11-B)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -206,7 +206,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 <div id="menu" class="hide">
   <div class="panel">
     <div class="full">
-      <div class="lbl">Sinematik açık dünya · v0.5</div>
+      <div class="lbl">Sinematik açık dünya · v0.6</div>
       <h1>YALI<b>KENT</b></h1>
       <p class="note">Liman şehri. Gün batıyor, martılar alçalıyor, sokak lambaları yanmak üzere.
       İş al, para kazan, hava değişsin diye bekle.</p>
@@ -243,7 +243,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
       <button class="ghost" id="wipe">Kaydı sil</button>
     </div>
     <p class="note full" style="margin-top:8px">
-      Yüklü sürüm: <b style="color:var(--amber)">2026-09-10-A</b> ·
+      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-B</b> ·
       Oyuncu: <b style="color:var(--teal)" id="menuName">—</b><br>
       Fare için tuvale tıkla · <b style="color:var(--paper)">Esc</b> menü ·
       <b style="color:var(--paper)">T</b> zamanı hızlandır ·
@@ -262,14 +262,14 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 </div>
 <div id="gate">
   <div class="gbox">
-    <div class="lbl">Sinematik açık dünya · v0.5</div>
+    <div class="lbl">Sinematik açık dünya · v0.6</div>
     <h1>YALI<b>KENT</b></h1>
     <label class="gl" for="pname">İsmini yaz</label>
     <input id="pname" type="text" maxlength="16" placeholder="örn. Deniz"
            autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="gerr" id="gerr"></div>
     <button class="cta" id="gstart">Devam</button>
-    <div class="gver">Yüklü sürüm: <b>2026-09-10-A</b></div>
+    <div class="gver">Yüklü sürüm: <b>2026-09-11-B</b></div>
   </div>
 </div>
 <div id="load">Şehir kuruluyor</div>
@@ -295,7 +295,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2, dist2=(ax,az,bx,bz)=>(ax-bx)*(ax-bx)+(az-bz)*(az-bz);
 const TMP={x:0,z:0};   /* her karede yeni nesne üretmemek için ortak tampon */
-const VERSION="2026-09-10-A";
+const VERSION="2026-09-11-B";
 let quality=MOBILE?"mid":"high";
 /* budget = ekrana çizilecek azami piksel sayısı (projeksiyon/4K için kritik) */
 const QSET={low:{px:1,shadow:false,rain:600,ped:8,dog:2,cat:2,bird:12,car:8,fog:1.35,budget:900000},
@@ -844,26 +844,125 @@ function buildCity(){
 /* ═════════════════ modeller ═════════════════ */
 const M=(c,r=.8)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:.02});
 
-/* Oyuncu tek nesne olarak kalıyor — tek aktör, instancing'e girmesi anlamsız. */
-function human(skin,shirt,pants){
-  const g=new THREE.Group();
-  const torso=new THREE.Mesh(new THREE.BoxGeometry(.46,.6,.26),M(shirt)); torso.position.y=1.12;
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),M(skin,.9)); head.position.y=1.58;
-  const hip=new THREE.Mesh(new THREE.BoxGeometry(.42,.18,.25),M(pants)); hip.position.y=.8;
-  const leg=()=>{const l=new THREE.Mesh(new THREE.BoxGeometry(.17,.78,.19),M(pants));l.geometry.translate(0,-.39,0);return l;};
-  const arm=()=>{const a=new THREE.Mesh(new THREE.BoxGeometry(.14,.62,.15),M(shirt));a.geometry.translate(0,-.31,0);return a;};
-  const lL=leg(),lR=leg(),aL=arm(),aR=arm();
-  lL.position.set(-.12,.8,0); lR.position.set(.12,.8,0);
-  aL.position.set(-.3,1.38,0); aR.position.set(.3,1.38,0);
-  [torso,head,hip,lL,lR,aL,aR].forEach(m=>{castsShadow(m);g.add(m);});
-  g.userData.parts={lL,lR,aL,aR,torso}; return g;
+/* Alt yüzü bw×bd, üst yüzü tw×td olan kesik prizma. Araç camlığı ve
+   insan gövdesi bununla çıkıyor; kutu yığını görüntüsünden kurtaran tek şey. */
+function prizma(bw,bd,tw,td,h,kx,kz){
+  kx=kx||0; kz=kz||0;
+  const bx=bw/2,bz=bd/2,tx=tw/2,tz=td/2;
+  const v=[-bx,0,-bz, bx,0,-bz, bx,0,bz, -bx,0,bz,
+           kx-tx,h,kz-tz, kx+tx,h,kz-tz, kx+tx,h,kz+tz, kx-tx,h,kz+tz];
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));
+  g.setIndex([0,1,2, 0,2,3, 4,6,5, 4,7,6, 0,4,5, 0,5,1,
+              1,5,6, 1,6,2, 2,6,7, 2,7,3, 3,7,4, 3,4,0]);
+  g.computeVertexNormals(); return g;
 }
 
-/* ═════════════════ instanced aktörler ═════════════════
-   Eskiden her yaya 7, her araç 10 ayrı mesh + ayrı malzemeydi: ~400 çizim çağrısı.
-   Artık gövde parçası başına tek InstancedMesh var: ~35 çağrı. Uzuv animasyonu korunuyor,
-   her karede parça matrisi hesaplanıp yazılıyor. */
-const RIG={root:new THREE.Object3D(),part:new THREE.Object3D(),m:new THREE.Matrix4(),col:new THREE.Color()};
+/* Geçici düğüm: parça matrisini hesaplamak için. */
+const GQ=new THREE.Quaternion(), GE=new THREE.Euler(),
+      GT=new THREE.Vector3(), GS=new THREE.Vector3();
+function trs(out,x,y,z,rx,ry,rz,sx,sy,sz){
+  GT.set(x,y,z); GE.set(rx||0,ry||0,rz||0); GQ.setFromEuler(GE);
+  GS.set(sx===undefined?1:sx,sy===undefined?1:sy,sz===undefined?1:sz);
+  return out.compose(GT,GQ,GS);
+}
+
+/* Geometri birleştirici. r128 çekirdeğinde BufferGeometryUtils yok.
+   Bir aracın on parçasını tek mesh'e indirmenin tek yolu bu: siluet
+   zenginleşirken çizim çağrısı artmıyor. */
+function birlestir(parcalar,renkli){
+  let n=0;
+  const hazir=parcalar.map(p=>{
+    let g=p.geo;
+    if(g.index) g=g.toNonIndexed();
+    if(!g.attributes.normal) g.computeVertexNormals();
+    n+=g.attributes.position.count;
+    return {g,m:p.m,renk:p.renk};
+  });
+  const pos=new Float32Array(n*3), nor=new Float32Array(n*3);
+  const col=renkli?new Float32Array(n*3):null;
+  const v=new THREE.Vector3(), nm=new THREE.Matrix3(), c=new THREE.Color();
+  let o=0;
+  for(const h of hazir){
+    const A=h.g.attributes.position, B=h.g.attributes.normal;
+    nm.getNormalMatrix(h.m);
+    if(renkli) c.setHex(h.renk===undefined?0xffffff:h.renk);
+    for(let i=0;i<A.count;i++){
+      v.fromBufferAttribute(A,i).applyMatrix4(h.m);
+      pos[o*3]=v.x; pos[o*3+1]=v.y; pos[o*3+2]=v.z;
+      v.fromBufferAttribute(B,i).applyMatrix3(nm).normalize();
+      nor[o*3]=v.x; nor[o*3+1]=v.y; nor[o*3+2]=v.z;
+      if(renkli){ col[o*3]=c.r; col[o*3+1]=c.g; col[o*3+2]=c.b; }
+      o++;
+    }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  g.setAttribute("normal",new THREE.BufferAttribute(nor,3));
+  if(renkli) g.setAttribute("color",new THREE.BufferAttribute(col,3));
+  return g;
+}
+/* birleştirme listesine parça ekle */
+function ekle(liste,geo,x,y,z,rx,ry,rz,renk){
+  liste.push({geo,m:trs(new THREE.Matrix4(),x,y,z,rx,ry,rz),renk});
+}
+
+function tuval2(w,h){ const c=document.createElement("canvas"); c.width=w; c.height=h;
+  return {c,x:c.getContext("2d")}; }
+
+/* ── yüz dokusu ──
+   Yüz geometri değil doku: yayalar tek InstancedMesh'te çizildiği için
+   göz-kaş-ağız ayrı mesh olsaydı kişi başına on çizim daha gelirdi.
+   Taban beyaz: örnek rengi ten rengini veriyor. */
+function yuzDoku(sakal){
+  const {c,x:g}=tuval2(128,128);
+  g.fillStyle="#ffffff"; g.fillRect(0,0,128,128);
+  const mx=32, my=128-Math.round(.63*128);
+  if(sakal){
+    g.fillStyle="rgba(58,42,30,.55)";
+    g.beginPath(); g.ellipse(mx,my+17,15,13,0,0,Math.PI*2); g.fill();
+    g.fillStyle="#ffffff";
+    g.beginPath(); g.ellipse(mx,my+10,8.5,5.5,0,0,Math.PI*2); g.fill();
+  }
+  [-7.5,7.5].forEach(dx=>{
+    g.fillStyle="#f4efe6";
+    g.beginPath(); g.ellipse(mx+dx,my,4.3,2.5,0,0,Math.PI*2); g.fill();
+    g.fillStyle="#22303c"; g.beginPath(); g.arc(mx+dx,my,2.1,0,Math.PI*2); g.fill();
+    g.fillStyle="#0c1116"; g.beginPath(); g.arc(mx+dx,my,1,0,Math.PI*2); g.fill();
+  });
+  g.strokeStyle="#3a2a1c"; g.lineWidth=1.7; g.lineCap="round";
+  [-7.5,7.5].forEach(dx=>{ g.beginPath();
+    g.moveTo(mx+dx-4.5,my-5.5); g.lineTo(mx+dx+4.5,my-5); g.stroke(); });
+  g.strokeStyle="rgba(120,85,60,.42)"; g.lineWidth=1.3;
+  g.beginPath(); g.moveTo(mx,my+1.5); g.lineTo(mx-1.3,my+7.5); g.lineTo(mx+1.5,my+8); g.stroke();
+  g.strokeStyle="#7a4038"; g.lineWidth=1.4;
+  g.beginPath(); g.moveTo(mx-4,my+12.5); g.lineTo(mx+4,my+12.5); g.stroke();
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t;
+}
+const YUZ=[yuzDoku(false),yuzDoku(true)];
+
+/* lastik dişi ve jant kolu: düz silindir dönerken dönüyormuş gibi durmuyordu */
+const LASTIK_DOKU=(()=>{ const {c,x:g}=tuval2(64,32);
+  g.fillStyle="#181a1f"; g.fillRect(0,0,64,32);
+  g.fillStyle="#0b0d10"; for(let i=0;i<8;i++) g.fillRect(i*8,0,4,32);
+  g.fillStyle="#262a31"; g.fillRect(0,0,64,2); g.fillRect(0,30,64,2);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(8,1); t.encoding=THREE.sRGBEncoding; return t; })();
+const JANT_DOKU=(()=>{ const {c,x:g}=tuval2(128,128);
+  g.fillStyle="#14161b"; g.fillRect(0,0,128,128);
+  g.fillStyle="#b9bec6"; g.beginPath(); g.arc(64,64,58,0,Math.PI*2); g.fill();
+  g.fillStyle="#2b3038";
+  for(let i=0;i<6;i++){ const a=i/6*Math.PI*2;
+    g.save(); g.translate(64,64); g.rotate(a);
+    g.beginPath(); g.moveTo(-7,-14); g.lineTo(7,-14); g.lineTo(12,-54); g.lineTo(-12,-54);
+    g.closePath(); g.fill(); g.restore(); }
+  g.fillStyle="#d2d6dc"; g.beginPath(); g.arc(64,64,15,0,Math.PI*2); g.fill();
+  g.fillStyle="#7d838c"; g.beginPath(); g.arc(64,64,7,0,Math.PI*2); g.fill();
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return t; })();
+
+/* ═════════════════ instanced altyapı ═════════════════ */
+const RIG={root:new THREE.Object3D(),part:new THREE.Object3D(),m:new THREE.Matrix4(),
+           col:new THREE.Color()};
 const HIDDEN=new THREE.Matrix4().makeTranslation(0,-9999,0);
 function rigMesh(geo,mat,count){
   const m=new THREE.InstancedMesh(geo,mat,count);
@@ -871,12 +970,11 @@ function rigMesh(geo,mat,count){
 }
 function rigRoot(x,y,z,ry,rz){
   const R=RIG.root; R.position.set(x,y,z); R.rotation.set(0,ry,rz||0);
-  R.updateMatrix(); return R.matrix;
+  R.scale.set(1,1,1); R.updateMatrix(); return R.matrix;
 }
 function rigPart(mesh,k,rootM,px,py,pz,rx,ry,rz,sx,sy,sz){
   const P=RIG.part;
-  P.position.set(px,py,pz);
-  P.rotation.set(rx||0,ry||0,rz||0);
+  P.position.set(px,py,pz); P.rotation.set(rx||0,ry||0,rz||0);
   P.scale.set(sx===undefined?1:sx,sy===undefined?1:sy,sz===undefined?1:sz);
   P.updateMatrix();
   RIG.m.multiplyMatrices(rootM,P.matrix); mesh.setMatrixAt(k,RIG.m);
@@ -887,47 +985,141 @@ function rigFlush(set){ for(const n in set){ const m=set[n];
 function rigColorFlush(set){ for(const n in set){ const m=set[n];
   if(m&&m.isInstancedMesh&&m.instanceColor) m.instanceColor.needsUpdate=true; } }
 
-/* ── yayalar ── */
-const PEDN=Q.ped+1;                 /* +1 slot: taksi müşterisi */
-const pedGeo={
-  torso:new THREE.BoxGeometry(.46,.6,.26),
-  head:new THREE.SphereGeometry(.17,10,8),
-  hip:new THREE.BoxGeometry(.42,.18,.25),
-  leg:new THREE.BoxGeometry(.17,.78,.19),
-  arm:new THREE.BoxGeometry(.14,.62,.15)
-};
-pedGeo.leg.translate(0,-.39,0); pedGeo.arm.translate(0,-.31,0);
-const pedMesh={
-  torso:rigMesh(pedGeo.torso,M(0xffffff),PEDN),
-  head :rigMesh(pedGeo.head ,M(0xffffff,.9),PEDN),
-  hip  :rigMesh(pedGeo.hip  ,M(0xffffff),PEDN),
-  lL:rigMesh(pedGeo.leg,M(0xffffff),PEDN), lR:rigMesh(pedGeo.leg,M(0xffffff),PEDN),
-  aL:rigMesh(pedGeo.arm,M(0xffffff),PEDN), aR:rigMesh(pedGeo.arm,M(0xffffff),PEDN)
-};
-const SKIN=[0xe8c0a0,0xc08f6a,0x8d5f45,0xf0d6bd],
-      SHIRT=[0xc9503f,0x3f6fc8,0xd9b64a,0x4aa06a,0xe0dcd2,0x8a4fb0],
-      PANTS=[0x2c3244,0x40465a,0x5a4030];
-function pedColors(k){
-  const c=RIG.col, sk=pick(SKIN), sh=pick(SHIRT), pa=pick(PANTS);
-  pedMesh.head.setColorAt(k,c.setHex(sk));
-  pedMesh.torso.setColorAt(k,c.setHex(sh));
-  pedMesh.aL.setColorAt(k,c.setHex(sh)); pedMesh.aR.setColorAt(k,c.setHex(sh));
-  pedMesh.hip.setColorAt(k,c.setHex(pa));
-  pedMesh.lL.setColorAt(k,c.setHex(pa)); pedMesh.lR.setColorAt(k,c.setHex(pa));
+/* ═════════════════ YAYALAR ═════════════════
+   İskelet: kalça → uyluk → baldır → ayak, gövde → üst kol → ön kol.
+   Diz ve dirsek olmadan hiçbir yürüyüş insana benzemiyor. Yerel +Z ileri. */
+const OLC={ayak:.10,baldir:.35,uyluk:.45,kalca:.90,govde:.50,ustKol:.28,onKol:.26};
+const PEDN=Q.ped+2;          /* +1 taksi müşterisi, +1 oyuncu */
+const PED_OYUNCU=PEDN-1, PED_MUSTERI=PEDN-2;
+
+function pedGeoYap(){
+  const kalca=prizma(.40,.26,.36,.24,.20); kalca.translate(0,-.16,0);
+  const uyluk=prizma(.19,.20,.16,.17,OLC.uyluk); uyluk.translate(0,-OLC.uyluk,0);
+  const baldir=prizma(.16,.17,.13,.14,OLC.baldir); baldir.translate(0,-OLC.baldir,0);
+  const ayak=prizma(.17,.26,.15,.20,OLC.ayak,0,.03); ayak.translate(0,-OLC.ayak,.05);
+  const govde=prizma(.38,.24,.45,.27,OLC.govde);
+  const omuz=prizma(.45,.27,.42,.25,.09); omuz.translate(0,OLC.govde,0);
+  const kafa=new THREE.SphereGeometry(.115,16,12); kafa.translate(0,.10,0);
+  const sac=new THREE.SphereGeometry(.121,12,10); sac.scale(1,.78,1.03); sac.translate(0,.115,-.012);
+  const ustKol=prizma(.135,.145,.12,.13,OLC.ustKol); ustKol.translate(0,-OLC.ustKol,0);
+  const onKol=prizma(.12,.13,.105,.115,OLC.onKol); onKol.translate(0,-OLC.onKol,0);
+  const el=new THREE.SphereGeometry(.055,8,6); el.scale(.85,1.1,.7); el.translate(0,-.295,0);
+  return {kalca,uyluk,baldir,ayak,govde,omuz,kafa,sac,ustKol,onKol,el};
 }
-function writePed(p,time,sp){
-  if(!p.on){ rigHide(pedMesh.torso,p.k); rigHide(pedMesh.head,p.k); rigHide(pedMesh.hip,p.k);
-             rigHide(pedMesh.lL,p.k); rigHide(pedMesh.lR,p.k);
-             rigHide(pedMesh.aL,p.k); rigHide(pedMesh.aR,p.k); return; }
-  const rootM=rigRoot(p.x,p.y,p.z,-p.ang+Math.PI/2,p.dead?Math.PI/2:0);
-  const s=p.dead?0:clamp(sp/3.2,0,1.6), sw=p.dead?0:Math.sin(time*sp*2.4);
-  rigPart(pedMesh.torso,p.k,rootM,0,1.12,0,0,sw*.09*s,0);
-  rigPart(pedMesh.head ,p.k,rootM,0,1.58,0);
-  rigPart(pedMesh.hip  ,p.k,rootM,0,.8,0);
-  rigPart(pedMesh.lL,p.k,rootM,-.12,.8,0,  sw*.72*s);
-  rigPart(pedMesh.lR,p.k,rootM, .12,.8,0, -sw*.72*s);
-  rigPart(pedMesh.aL,p.k,rootM,-.3,1.38,0,-sw*.6*s);
-  rigPart(pedMesh.aR,p.k,rootM, .3,1.38,0, sw*.6*s);
+const PG=pedGeoYap();
+const pedMesh={
+  kalca :rigMesh(PG.kalca ,M(0xffffff,.9),PEDN),
+  uylukL:rigMesh(PG.uyluk ,M(0xffffff,.9),PEDN), uylukR:rigMesh(PG.uyluk ,M(0xffffff,.9),PEDN),
+  baldirL:rigMesh(PG.baldir,M(0xffffff,.9),PEDN),baldirR:rigMesh(PG.baldir,M(0xffffff,.9),PEDN),
+  ayakL :rigMesh(PG.ayak  ,M(0xffffff,.7),PEDN), ayakR :rigMesh(PG.ayak  ,M(0xffffff,.7),PEDN),
+  govde :rigMesh(PG.govde ,M(0xffffff,.86),PEDN),
+  omuz  :rigMesh(PG.omuz  ,M(0xffffff,.86),PEDN),
+  kafa0 :rigMesh(PG.kafa,new THREE.MeshStandardMaterial({map:YUZ[0],roughness:.88}),PEDN),
+  kafa1 :rigMesh(PG.kafa,new THREE.MeshStandardMaterial({map:YUZ[1],roughness:.88}),PEDN),
+  sac   :rigMesh(PG.sac   ,M(0xffffff,.95),PEDN),
+  ustKolL:rigMesh(PG.ustKol,M(0xffffff,.86),PEDN),ustKolR:rigMesh(PG.ustKol,M(0xffffff,.86),PEDN),
+  onKolL:rigMesh(PG.onKol ,M(0xffffff,.86),PEDN), onKolR:rigMesh(PG.onKol ,M(0xffffff,.86),PEDN),
+  elL   :rigMesh(PG.el    ,M(0xffffff,.88),PEDN), elR   :rigMesh(PG.el    ,M(0xffffff,.88),PEDN)
+};
+const TEN=[0xf2dcc4,0xe8c6a6,0xd9ab86,0xc0906c,0x9d7050,0x7c5539];
+const SACR=[0x241a12,0x100d0b,0x46301f,0x6b5136,0x9a7a45,0xb9b3ad,0x7a4326];
+const USTR=[0x1b1d22,0x2f4a6b,0x7a2f34,0x3c5a46,0xd9d3c6,0x4a3f5c,0xc9702f,0x2b6b6b,0x8a8f99];
+const ALTR=[0x2f3a52,0x3c4152,0x22252c,0x5a4a38,0x6b7180,0x1d2733];
+const AYKR=[0x1a1a1e,0x2e2419,0xe0ddd6,0x3a3f4a];
+function pedColors(k,kisaKol){
+  const c=RIG.col, ten=pick(TEN), sac=pick(SACR), ust=pick(USTR),
+        alt=pick(ALTR), ayk=pick(AYKR);
+  pedMesh.kalca.setColorAt(k,c.setHex(alt));
+  pedMesh.uylukL.setColorAt(k,c.setHex(alt)); pedMesh.uylukR.setColorAt(k,c.setHex(alt));
+  pedMesh.baldirL.setColorAt(k,c.setHex(alt)); pedMesh.baldirR.setColorAt(k,c.setHex(alt));
+  pedMesh.ayakL.setColorAt(k,c.setHex(ayk)); pedMesh.ayakR.setColorAt(k,c.setHex(ayk));
+  pedMesh.govde.setColorAt(k,c.setHex(ust)); pedMesh.omuz.setColorAt(k,c.setHex(ust));
+  pedMesh.ustKolL.setColorAt(k,c.setHex(ust)); pedMesh.ustKolR.setColorAt(k,c.setHex(ust));
+  const kolR=kisaKol?ten:ust;
+  pedMesh.onKolL.setColorAt(k,c.setHex(kolR)); pedMesh.onKolR.setColorAt(k,c.setHex(kolR));
+  pedMesh.kafa0.setColorAt(k,c.setHex(ten)); pedMesh.kafa1.setColorAt(k,c.setHex(ten));
+  pedMesh.elL.setColorAt(k,c.setHex(ten)); pedMesh.elR.setColorAt(k,c.setHex(ten));
+  pedMesh.sac.setColorAt(k,c.setHex(sac));
+}
+
+const PMX=[]; for(let i=0;i<8;i++) PMX.push(new THREE.Matrix4());
+/* Yürüyüş çevrimi. Faz biriktiriliyor — eski hâli sin(t × hız) kullandığı
+   için hız her değiştiğinde bacaklar sıçrıyordu. Yürüyüş ve koşu ayrı iki
+   animasyon değil, hıza göre sürekli karışım. */
+function writePed(p,dt,sp){
+  const k=p.k;
+  if(!p.on){ for(const n in pedMesh) rigHide(pedMesh[n],k); return; }
+  sp=sp||0;
+  const olu=p.dead;
+  let uylukL=0,uylukR=0,dizL=.06,dizR=.06,aykL=0,aykR=0,
+      kolLx=0,kolRx=0,dirL=-.25,dirR=-.25,kolZ=.06,
+      govdeRx=.03,govdeRy=0,govdeRz=0,kalcaRy=0,kalcaRz=0,bob=0,basRx=-.02,basRy=0;
+  if(olu){
+    uylukL=uylukR=.25; dizL=dizR=.7; dirL=dirR=-.5;
+  } else if(sp>.35){
+    const hk=Math.min(clamp(sp/3.2,0,1.9),1.9);
+    p.faz+=dt*(1.6+sp*1.9);
+    const f=p.faz, A=.30+.34*hk, K=.45+.72*hk, KOL=.20+.31*hk;
+    const kosF=clamp((sp-3.6)/2.6,0,1);
+    const fL=f, fR=f+Math.PI;
+    uylukL=-Math.sin(fL)*A; uylukR=-Math.sin(fR)*A;
+    /* diz yalnız öne savrulurken bükülür, geçiş anında tepe yapar */
+    dizL=.06+K*Math.pow(Math.max(0,Math.cos(fL+.55)),1.4);
+    dizR=.06+K*Math.pow(Math.max(0,Math.cos(fR+.55)),1.4);
+    aykL=-(uylukL+dizL)*.55+Math.sin(fL+1.1)*(.14+kosF*.16);
+    aykR=-(uylukR+dizR)*.55+Math.sin(fR+1.1)*(.14+kosF*.16);
+    kolLx=Math.sin(fL)*KOL; kolRx=Math.sin(fR)*KOL;   /* kollar bacakların tersi */
+    dirL=-(.26+kosF*.78+Math.max(0,Math.sin(fL))*(.26+kosF*.12));
+    dirR=-(.26+kosF*.78+Math.max(0,Math.sin(fR))*(.26+kosF*.12));
+    kolZ=.06+kosF*.10;
+    govdeRx=.045+kosF*.16;
+    govdeRy=Math.sin(f)*(.09+kosF*.08);
+    govdeRz=Math.sin(f*2)*(.02+kosF*.03);
+    kalcaRy=-Math.sin(f)*(.07+kosF*.06);
+    kalcaRz=Math.sin(f)*(.035+kosF*.035);
+    bob=(.028+kosF*.047)*(.5+.5*Math.cos(2*f))+(kosF>0?Math.max(0,Math.sin(f*2))*.03*kosF:0);
+    basRx=-govdeRx*.7; basRy=-govdeRy*.45;
+  } else {
+    p.faz+=dt*1.1;
+    const nf=Math.sin(p.faz*1.3)*.5+.5;
+    govdeRx=.02+nf*.012; govdeRy=Math.sin(p.faz*.55)*.045;
+    kalcaRy=Math.sin(p.faz*.55)*-.03; bob=nf*.006;
+    basRy=Math.sin(p.faz*.42)*.10;
+    dizL=dizR=.05; dirL=dirR=-.22-nf*.03;
+  }
+
+  const kokM=trs(PMX[0],p.x,p.y+bob,p.z,0,-p.ang+Math.PI/2,olu?Math.PI/2:0,
+                 p.genis,p.boy,p.genis);
+  /* bacaklar */
+  const kalcaM=PMX[1].multiplyMatrices(kokM,trs(PMX[7],0,OLC.kalca,0,0,kalcaRy,kalcaRz));
+  pedMesh.kalca.setMatrixAt(k,kalcaM);
+  let a=PMX[2].multiplyMatrices(kalcaM,trs(PMX[7],-.105,-.06,0,uylukL,0,0));
+  pedMesh.uylukL.setMatrixAt(k,a);
+  let b=PMX[3].multiplyMatrices(a,trs(PMX[7],0,-OLC.uyluk,0,dizL,0,0));
+  pedMesh.baldirL.setMatrixAt(k,b);
+  pedMesh.ayakL.setMatrixAt(k,PMX[4].multiplyMatrices(b,trs(PMX[7],0,-OLC.baldir,0,aykL,0,0)));
+  a=PMX[2].multiplyMatrices(kalcaM,trs(PMX[7],.105,-.06,0,uylukR,0,0));
+  pedMesh.uylukR.setMatrixAt(k,a);
+  b=PMX[3].multiplyMatrices(a,trs(PMX[7],0,-OLC.uyluk,0,dizR,0,0));
+  pedMesh.baldirR.setMatrixAt(k,b);
+  pedMesh.ayakR.setMatrixAt(k,PMX[4].multiplyMatrices(b,trs(PMX[7],0,-OLC.baldir,0,aykR,0,0)));
+  /* gövde */
+  const govdeM=PMX[1].multiplyMatrices(kokM,trs(PMX[7],0,OLC.kalca,0,govdeRx,govdeRy,govdeRz));
+  pedMesh.govde.setMatrixAt(k,govdeM);
+  pedMesh.omuz.setMatrixAt(k,govdeM);
+  const basM=PMX[5].multiplyMatrices(govdeM,trs(PMX[7],0,OLC.govde+.19,0,basRx,basRy,0));
+  if(p.yuz){ pedMesh.kafa1.setMatrixAt(k,basM); rigHide(pedMesh.kafa0,k); }
+  else     { pedMesh.kafa0.setMatrixAt(k,basM); rigHide(pedMesh.kafa1,k); }
+  if(p.sacli) pedMesh.sac.setMatrixAt(k,basM); else rigHide(pedMesh.sac,k);
+  /* kollar */
+  a=PMX[5].multiplyMatrices(govdeM,trs(PMX[7],-.245,OLC.govde-.02,0,kolLx,0,-kolZ));
+  pedMesh.ustKolL.setMatrixAt(k,a);
+  b=PMX[6].multiplyMatrices(a,trs(PMX[7],0,-OLC.ustKol,0,dirL,0,0));
+  pedMesh.onKolL.setMatrixAt(k,b); pedMesh.elL.setMatrixAt(k,b);
+  a=PMX[5].multiplyMatrices(govdeM,trs(PMX[7],.245,OLC.govde-.02,0,kolRx,0,kolZ));
+  pedMesh.ustKolR.setMatrixAt(k,a);
+  b=PMX[6].multiplyMatrices(a,trs(PMX[7],0,-OLC.ustKol,0,dirR,0,0));
+  pedMesh.onKolR.setMatrixAt(k,b); pedMesh.elR.setMatrixAt(k,b);
 }
 
 /* ── dört ayaklılar ── */
@@ -969,57 +1161,159 @@ function writeQuad(rig,a,time,sp){
   rigPart(rig.l4,a.k,rootM,-d.legX,d.legY,-d.legZ, sw*sg*s);
 }
 
-/* ── araçlar ── */
+/* ═════════════════ ARAÇLAR ═════════════════
+   +X ileri. Her sınıfın parçaları üç mesh'e birleştiriliyor: boya (örnek
+   rengiyle boyanır), detay (cam/tampon/krom) ve lamba. Yedi gerçek siluet
+   toplam 30 civarı çizim çağrısına sığıyor. */
 const VCLASS=[
-  {n:"Sedan",  acc:17,top:34,grip:1.00,sx:1.00,sy:1.00,mass:1.0},
-  {n:"Spor",   acc:27,top:47,grip:1.18,sx:1.02,sy:.86,mass:.85},
-  {n:"Minibüs",acc:11,top:26,grip:.78,sx:1.12,sy:1.34,mass:1.5},
-  {n:"Kamyonet",acc:13,top:29,grip:.85,sx:1.18,sy:1.12,mass:1.35},
+  {id:"hatchback",n:"Hatchback",acc:19,top:36,grip:1.02,mass:.95,
+   uz:3.92,en:1.74,yer:.16,gY:.62,kUz:.50,kY:.70,kKay:-.04,ustOran:.60,arka:"kesik",ray:0,kap:0,R:.31},
+  {id:"crossover",n:"Crossover",acc:17,top:34,grip:.98,mass:1.1,
+   uz:4.14,en:1.82,yer:.26,gY:.70,kUz:.48,kY:.78,kKay:-.04,ustOran:.62,arka:"kesik",ray:1,kap:1,R:.35},
+  {id:"sedan",n:"Sedan",acc:21,top:40,grip:1.10,mass:1.0,
+   uz:4.62,en:1.78,yer:.14,gY:.60,kUz:.42,kY:.62,kKay:-.10,ustOran:.52,arka:"bagajlı",ray:0,kap:0,R:.32},
+  {id:"minibus",n:"Minibüs",acc:11,top:26,grip:.78,mass:1.5,
+   uz:5.10,en:1.92,yer:.22,gY:.74,kUz:.74,kY:1.12,kKay:.02,ustOran:.92,arka:"dik",ray:1,kap:0,R:.34},
+  {id:"kamyonet",n:"Kamyonet",acc:13,top:29,grip:.85,mass:1.35,
+   uz:4.86,en:1.88,yer:.30,gY:.72,kUz:.32,kY:.82,kKay:.24,ustOran:.80,arka:"kasa",ray:0,kap:1,R:.37},
+  {id:"panelvan",n:"Panelvan",acc:12,top:28,grip:.82,mass:1.4,
+   uz:4.70,en:1.86,yer:.20,gY:.72,kUz:.68,kY:1.06,kKay:.08,ustOran:.90,arka:"dik",ray:0,kap:0,R:.34},
+  {id:"spor",n:"Spor",acc:27,top:47,grip:1.18,mass:.85,
+   uz:4.30,en:1.84,yer:.10,gY:.52,kUz:.40,kY:.52,kKay:-.06,ustOran:.50,arka:"kesik",ray:0,kap:0,R:.34}
 ];
-const CARCOL=[0xb8452f,0x2f5fb8,0xd0a83c,0x3f8f60,0xa8adb8,0x7a3f9c,0x2a2f3c,0xd8d3c6];
-const CARN=Q.car+4;                 /* son 4 slot devriye için ayrılır */
-const carGeo={
-  body:new THREE.BoxGeometry(4.2,.85,1.95),
-  cabin:new THREE.BoxGeometry(2.1,.72,1.72),
-  wheel:new THREE.CylinderGeometry(.42,.42,.28,12),
-  lamp:new THREE.BoxGeometry(.12,.2,.34),
-  siren:new THREE.BoxGeometry(.34,.14,.5)
-};
+const CARCOL=[0xb8452f,0x2f5fb8,0xd0a83c,0x3f8f60,0xa8adb8,0x7a3f9c,0x2a2f3c,0xd8d3c6,
+              0xbfae99,0xe6e3dc,0x24365e];
+const CARN=Q.car+4;
+const CAM=0x0e131b, SIYAH=0x1a1d24, KROM=0xb9bec6;
+
+function aracGeoYap(s){
+  const B=[],D=[],F=[],S=[];
+  const uz=s.uz, en=s.en, tabanY=s.yer+s.R*.55, gY=s.gY;
+  const kUz=uz*s.kUz, kY=s.kY, kayX=uz*s.kKay, ustUz=kUz*s.ustOran;
+  /* gövde */
+  ekle(B,prizma(uz,en*.94,uz*.97,en,gY),0,tabanY,0);
+  ekle(D,prizma(uz*.99,en*.9,uz*.99,en*.9,.2),0,tabanY+.05,0,undefined,undefined,undefined,SIYAH);
+  /* camlık */
+  ekle(D,prizma(kUz,en*.96,ustUz,en*.80,kY,-kUz*.05,0),kayX,tabanY+gY,0,0,0,0,CAM);
+  ekle(B,prizma(ustUz*1.02,en*.81,ustUz*1.02,en*.81,.08),kayX-kUz*.05,tabanY+gY+kY,0);
+  /* A ve C direkleri: dört köşede ince ve eğik */
+  const ustX0=kayX-kUz*.05;
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(q=>{
+    const altX=kayX+q[0]*(kUz/2-.05), altZ=q[1]*en*.47;
+    const usX=ustX0+q[0]*(ustUz/2-.05), usZ=q[1]*en*.385;
+    ekle(B,prizma(.10,.09,.10,.09,kY,usX-altX,usZ-altZ),altX,tabanY+gY,altZ);
+  });
+  /* arka biçim */
+  if(s.arka==="bagajlı") ekle(B,prizma(uz*.28,en*.96,uz*.26,en*.92,.28),-uz*.34,tabanY+gY,0);
+  if(s.arka==="kasa"){
+    const kx=uz*.40;
+    ekle(B,prizma(kx,en*.96,kx,en*.96,.5),-uz*.25,tabanY+gY,0);
+    [-1,1].forEach(sz=>ekle(B,prizma(kx,.11,kx,.11,.42),-uz*.25,tabanY+gY+.5,sz*en*.47));
+    ekle(B,prizma(.11,en*.96,.11,en*.96,.42),-uz*.25-kx/2,tabanY+gY+.5,0);
+  }
+  if(s.id==="panelvan") [-1,1].forEach(sz=>
+    ekle(B,prizma(kUz*.5,.06,kUz*.5,.06,kY*.82),kayX-kUz*.2,tabanY+gY,sz*en*.47));
+  /* çamurluk kaplaması */
+  if(s.kap) [uz*.32,-uz*.32].forEach(dx=>[-1,1].forEach(sz=>
+    ekle(D,prizma(s.R*2.5,.16,s.R*2.5,.16,.30),dx,s.R*1.35,sz*(en*.5+.02),
+      undefined,undefined,undefined,SIYAH)));
+  /* tavan rayı */
+  if(s.ray) [-1,1].forEach(sz=>ekle(D,prizma(ustUz*.82,.09,ustUz*.82,.09,.07),
+    kayX-kUz*.05,tabanY+gY+kY,sz*en*.30,undefined,undefined,undefined,SIYAH));
+  /* tamponlar, ızgara, aynalar */
+  ekle(D,prizma(.22,en*.98,.22,en*.98,.26), uz/2-.10,tabanY+.14,0,0,0,0,SIYAH);
+  ekle(D,prizma(.22,en*.98,.22,en*.98,.26),-uz/2+.10,tabanY+.14,0,0,0,0,SIYAH);
+  ekle(D,prizma(.10,en*.52,.10,en*.52,.20), uz/2-.02,tabanY+gY*.38,0,0,0,0,KROM);
+  [-1,1].forEach(sz=>{
+    const my=tabanY+gY+kY*.28, mx=kayX+kUz*.40;
+    ekle(D,prizma(.10,.05,.10,.05,.045),mx,my,sz*(en*.48),0,0,0,SIYAH);
+    ekle(D,prizma(.17,.07,.17,.07,.11),mx,my,sz*(en*.52+.05),0,0,0,SIYAH);
+  });
+  /* farlar ve stoplar */
+  [-1,1].forEach(sz=>ekle(F,prizma(.14,.46,.14,.46,.20),uz/2-.05,tabanY+gY*.62,sz*en*.28,
+    0,0,0,0xfff4d8));
+  const stopBoy=s.arka==="dik"?[.12,.20,.48]:[.12,.42,.22];
+  [-1,1].forEach(sz=>ekle(S,prizma(stopBoy[0],stopBoy[1],stopBoy[0],stopBoy[1],stopBoy[2]),
+    -uz/2+.04,tabanY+gY*.58,sz*en*.32,0,0,0,0xff3546));
+  return {boya:birlestir(B,false),detay:birlestir(D,true),
+          far:birlestir(F,true),stop:birlestir(S,true),
+          tabanY,dingil:uz*.32,tekZ:en*.5-.02,R:s.R,
+          sirenY:tabanY+gY+kY+.1};
+}
+
 const carMat={
-  body :new THREE.MeshStandardMaterial({roughness:.34,metalness:.55}),
-  cabin:new THREE.MeshStandardMaterial({color:0x11141f,roughness:.14,metalness:.3}),
-  wheel:new THREE.MeshStandardMaterial({color:0x14161d,roughness:.9}),
-  head :new THREE.MeshStandardMaterial({color:0xfff0cc,emissive:new THREE.Color(0xfff0cc),emissiveIntensity:1.6}),
-  tail :new THREE.MeshStandardMaterial({color:0xff2a3c,emissive:new THREE.Color(0xff2a3c),emissiveIntensity:1.1}),
-  sirR :new THREE.MeshStandardMaterial({color:0xff2a3c,emissive:new THREE.Color(0xff2a3c),emissiveIntensity:2}),
-  sirB :new THREE.MeshStandardMaterial({color:0x2a7cff,emissive:new THREE.Color(0x2a7cff),emissiveIntensity:2})
+  boya :new THREE.MeshStandardMaterial({roughness:.28,metalness:.6}),
+  detay:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35,metalness:.45}),
+  far  :new THREE.MeshStandardMaterial({vertexColors:true,emissive:new THREE.Color(0xfff0cc),
+          emissiveIntensity:1.2,roughness:.2}),
+  stop :new THREE.MeshStandardMaterial({vertexColors:true,emissive:new THREE.Color(0xff2a3c),
+          emissiveIntensity:.9,roughness:.3}),
+  lastik:new THREE.MeshStandardMaterial({map:LASTIK_DOKU,roughness:.95}),
+  jant :new THREE.MeshStandardMaterial({map:JANT_DOKU,roughness:.35,metalness:.6}),
+  sirR :new THREE.MeshStandardMaterial({color:0xff2a3c,emissive:new THREE.Color(0xff2a3c),
+          emissiveIntensity:2,roughness:.4}),
+  sirB :new THREE.MeshStandardMaterial({color:0x2a7cff,emissive:new THREE.Color(0x2a7cff),
+          emissiveIntensity:2,roughness:.4})
 };
-const carMesh={
-  body :rigMesh(carGeo.body ,carMat.body ,CARN),
-  cabin:rigMesh(carGeo.cabin,carMat.cabin,CARN),
-  w1:rigMesh(carGeo.wheel,carMat.wheel,CARN), w2:rigMesh(carGeo.wheel,carMat.wheel,CARN),
-  w3:rigMesh(carGeo.wheel,carMat.wheel,CARN), w4:rigMesh(carGeo.wheel,carMat.wheel,CARN),
-  h1:rigMesh(carGeo.lamp,carMat.head,CARN), h2:rigMesh(carGeo.lamp,carMat.head,CARN),
-  t1:rigMesh(carGeo.lamp,carMat.tail,CARN), t2:rigMesh(carGeo.lamp,carMat.tail,CARN),
-  s1:rigMesh(carGeo.siren,carMat.sirR,CARN), s2:rigMesh(carGeo.siren,carMat.sirB,CARN)
+const SINIF=VCLASS.map(s=>{
+  const g=aracGeoYap(s);
+  return {s,g,
+    boya :rigMesh(g.boya ,carMat.boya ,CARN),
+    detay:rigMesh(g.detay,carMat.detay,CARN),
+    far  :rigMesh(g.far  ,carMat.far  ,CARN),
+    stop :rigMesh(g.stop ,carMat.stop ,CARN)};
+});
+VCLASS.forEach((s,i)=>{ s.idx=i; });
+/* tekerlek: eksen Z'de, dönüş Z etrafında, direksiyon Y etrafında */
+const LASTIK_G=(()=>{ const g=new THREE.CylinderGeometry(1,1,.26,20); g.rotateX(Math.PI/2); return g; })();
+const JANT_G=(()=>{ const g=new THREE.CylinderGeometry(.64,.64,.28,16); g.rotateX(Math.PI/2); return g; })();
+const tekMesh={
+  lastik:rigMesh(LASTIK_G,carMat.lastik,CARN*4),
+  jant  :rigMesh(JANT_G  ,carMat.jant  ,CARN*4)
 };
+const SIREN_G=new THREE.BoxGeometry(.34,.14,.5);
+const sirenMesh={ s1:rigMesh(SIREN_G,carMat.sirR,CARN), s2:rigMesh(SIREN_G,carMat.sirB,CARN) };
+
+const CMX=[new THREE.Matrix4(),new THREE.Matrix4(),new THREE.Matrix4()];
+function tekerYaz(mesh,idx,kokM,px,py,pz,direksiyon,donus,olcek){
+  const A=CMX[1].makeRotationY(direksiyon||0);
+  A.multiply(CMX[2].makeRotationZ(donus||0));
+  A.scale(GS.set(olcek,olcek,olcek));
+  A.setPosition(px,py,pz);
+  mesh.setMatrixAt(idx,CMX[0].multiplyMatrices(kokM,A));
+}
 function writeCar(c){
-  if(!c.on){ for(const n in carMesh) rigHide(carMesh[n],c.k); return; }
-  const sx=c.cl.sx, sy=c.cl.sy, HP=Math.PI/2;
-  const rootM=rigRoot(c.x,0,c.z,-c.ang-(c.drift||0),0);
-  rigPart(carMesh.body ,c.k,rootM,0,.78*sy,0,0,0,0,sx,sy,1);
-  rigPart(carMesh.cabin,c.k,rootM,-.15,1.42*sy,0,0,0,0,sx,sy,1);
-  rigPart(carMesh.w1,c.k,rootM, 1.4*sx,.42, .92,HP,c.spin,c.steer);
-  rigPart(carMesh.w2,c.k,rootM, 1.4*sx,.42,-.92,HP,c.spin,c.steer);
-  rigPart(carMesh.w3,c.k,rootM,-1.4*sx,.42, .92,HP,c.spin,0);
-  rigPart(carMesh.w4,c.k,rootM,-1.4*sx,.42,-.92,HP,c.spin,0);
-  rigPart(carMesh.h1,c.k,rootM, 2.06*sx,.9*sy, .62);
-  rigPart(carMesh.h2,c.k,rootM, 2.06*sx,.9*sy,-.62);
-  rigPart(carMesh.t1,c.k,rootM,-2.06*sx,.9*sy, .62);
-  rigPart(carMesh.t2,c.k,rootM,-2.06*sx,.9*sy,-.62);
-  if(c.cop){ rigPart(carMesh.s1,c.k,rootM,-.1,1.9*sy,.42);
-             rigPart(carMesh.s2,c.k,rootM,-.1,1.9*sy,-.42); }
-  else { rigHide(carMesh.s1,c.k); rigHide(carMesh.s2,c.k); }
+  const k=c.k, S=SINIF[c.cl.idx];
+  if(!c.on){
+    for(const q of SINIF){ rigHide(q.boya,k); rigHide(q.detay,k); rigHide(q.far,k); rigHide(q.stop,k); }
+    rigHide(sirenMesh.s1,k); rigHide(sirenMesh.s2,k);
+    for(let i=0;i<4;i++){ rigHide(tekMesh.lastik,k*4+i); rigHide(tekMesh.jant,k*4+i); }
+    return;
+  }
+  const kokM=rigRoot(c.x,0,c.z,-c.ang-(c.drift||0),0);
+  for(const q of SINIF){
+    if(q===S){ q.boya.setMatrixAt(k,kokM); q.detay.setMatrixAt(k,kokM);
+               q.far.setMatrixAt(k,kokM); q.stop.setMatrixAt(k,kokM); }
+    else { rigHide(q.boya,k); rigHide(q.detay,k); rigHide(q.far,k); rigHide(q.stop,k); }
+  }
+  const g=S.g, R=g.R, o=R;
+  tekerYaz(tekMesh.lastik,k*4  ,kokM, g.dingil,R, g.tekZ,c.steer,c.spin,o);
+  tekerYaz(tekMesh.lastik,k*4+1,kokM, g.dingil,R,-g.tekZ,c.steer,c.spin,o);
+  tekerYaz(tekMesh.lastik,k*4+2,kokM,-g.dingil,R, g.tekZ,0,c.spin,o);
+  tekerYaz(tekMesh.lastik,k*4+3,kokM,-g.dingil,R,-g.tekZ,0,c.spin,o);
+  tekerYaz(tekMesh.jant,k*4  ,kokM, g.dingil,R, g.tekZ+.015,c.steer,c.spin,o);
+  tekerYaz(tekMesh.jant,k*4+1,kokM, g.dingil,R,-g.tekZ-.015,c.steer,c.spin,o);
+  tekerYaz(tekMesh.jant,k*4+2,kokM,-g.dingil,R, g.tekZ+.015,0,c.spin,o);
+  tekerYaz(tekMesh.jant,k*4+3,kokM,-g.dingil,R,-g.tekZ-.015,0,c.spin,o);
+  if(c.cop){ rigPart(sirenMesh.s1,k,kokM,-.1,g.sirenY,.42);
+             rigPart(sirenMesh.s2,k,kokM,-.1,g.sirenY,-.42); }
+  else { rigHide(sirenMesh.s1,k); rigHide(sirenMesh.s2,k); }
+}
+function carFlush(){
+  for(const q of SINIF){ q.boya.instanceMatrix.needsUpdate=true;
+    q.detay.instanceMatrix.needsUpdate=true; q.far.instanceMatrix.needsUpdate=true;
+    q.stop.instanceMatrix.needsUpdate=true; }
+  rigFlush(tekMesh); rigFlush(sirenMesh);
 }
 
 /* ═════════════════ aktörler ═════════════════ */
@@ -1029,26 +1323,23 @@ const LO={x:0,z:0};
 const laneOff=(d,o)=>{ o.x=-d.z*LANE; o.z=d.x*LANE; return o; };
 const boats=[];
 let player, cars=[], peds=[], dogs=[], cats=[], birds=null, birdData=[], rain=null;
-let dogRig=null, catRig=null;
+let dogRig=null, catRig=null, playerPed=null;
 let inCar=null, hp=100, wanted=0, crimeT=0, hour=18.3, weather="clear", wxT=0, money=0, nightF=0;
 
 function newCar(k,cop,on){
-  const cl=cop?VCLASS[0]:pick(VCLASS);
+  const cl=cop?VCLASS[2]:pick(VCLASS);          /* devriye sedan */
   const d=pick(DIRS), i=ri(1,SEA_I-1), j=ri(1,GRID-1); laneOff(d,LO);
-  carMesh.body.setColorAt(k,RIG.col.setHex(cop?0x1c2740:pick(CARCOL)));
+  SINIF[cl.idx].boya.setColorAt(k,RIG.col.setHex(cop?0x1c2740:pick(CARCOL)));
   return {k,on:!!on,cl,cop:!!cop,i,j,dir:d,ang:Math.atan2(d.z,d.x),
     x:i*CELL+LO.x-d.x*rnd(6,40), z:j*CELL+LO.z-d.z*rnd(6,40),
     v:0,sp:rnd(9,15),hp:100,dead:false,drift:0,spin:0,steer:0,chase:false};
 }
-/* boş devriye slotu bul ve oyuncunun yakınında etkinleştir */
 function spawnCop(){
   for(const c of cars){
     if(!c.cop||c.on) continue;
     const d=pick(DIRS); laneOff(d,LO);
     c.on=true; c.dead=false; c.hp=100; c.v=0; c.drift=0; c.steer=0; c.chase=false;
     c.dir=d; c.ang=Math.atan2(d.z,d.x);
-    /* yol düğümüne doğ: eskiden rastgele nokta seçiliyordu ve devriye
-       bazen binanın içinde başlayıp ilk karede dışarı fırlıyordu */
     const spot=roadSpot(90);
     c.x=clamp(spot.x,20,SEA_I*CELL-20);
     c.z=clamp(spot.z,20,WORLD-20);
@@ -1058,12 +1349,14 @@ function spawnCop(){
   return null;
 }
 function newPed(k,on){
-  pedColors(k);
+  const kisaKol=Math.random()<.45;
+  pedColors(k,kisaKol);
   const i=ri(1,SEA_I-1), j=ri(1,GRID-1);
   return {k,on:!!on,x:i*CELL+rnd(-20,20),y:0,z:j*CELL+rnd(-20,20),
-    ang:rnd(0,TAU),sp:rnd(1.2,1.8),t:rnd(1,5),dead:false,deadT:0,fear:0,fixed:false};
+    ang:rnd(0,TAU),sp:rnd(1.2,1.8),t:rnd(1,5),dead:false,deadT:0,fear:0,fixed:false,
+    faz:rnd(0,TAU),boy:rnd(.93,1.09),genis:rnd(.90,1.16),
+    yuz:Math.random()<.35?1:0,sacli:Math.random()<.86};
 }
-/* görev müşterisi: havuzdan bir slot al, yerine çakılı kalsın */
 function placePed(p,x,z){ p.x=x; p.z=z; p.y=0; p.dead=false; p.deadT=0; p.fear=0;
   p.ang=rnd(0,TAU); p.fixed=true; p.on=true; return p; }
 function newDog(k){ quadColor(dogRig,k,pick([0x9a7248,0x3b3a38,0xd8c9a8,0x6b4a32]));
@@ -1265,23 +1558,17 @@ function moveAxes(){
   const m=Math.hypot(x,y); if(m>1){ x/=m; y/=m; }
   MOVE.x=clamp(x,-1,1); MOVE.y=clamp(y,-1,1); return MOVE;
 }
-function animLimbs(p,speed,t){
-  const s=clamp(speed/3.2,0,1.6), ph=t*speed*2.4;
-  p.lL.rotation.x=Math.sin(ph)*.72*s; p.lR.rotation.x=-Math.sin(ph)*.72*s;
-  p.aL.rotation.x=-Math.sin(ph)*.6*s; p.aR.rotation.x=Math.sin(ph)*.6*s;
-  p.torso.rotation.y=Math.sin(ph)*.09*s;
-}
 function toggleCar(){
   if(!started) return;
   initAudio(); sfx.door();
   if(inCar){ const c=inCar; inCar=null;
     player.x=c.x-Math.sin(c.ang)*2.8; player.z=c.z+Math.cos(c.ang)*2.8;
-    pushOut(player,.6); player.mesh.visible=true; headL.intensity=0; feed("Araçtan indin"); return; }
+    pushOut(player,.6); playerPed.on=true; headL.intensity=0; feed("Araçtan indin"); return; }
   let best=null,bd=28;
   for(const c of cars){ if(!c.on) continue;
     const d=dist2(c.x,c.z,player.x,player.z);
     if(d<bd){bd=d;best=c;} }
-  if(best){ inCar=best; player.mesh.visible=false; yaw=best.ang+Math.PI;
+  if(best){ inCar=best; playerPed.on=false; yaw=best.ang+Math.PI;
     feed(best.cop?"Devriye aracını gasp ettin — "+best.cl.n:best.cl.n+"'e bindin","sürüş");
     if(best.cop){ wanted=Math.min(5,wanted+2); crimeT=0; } }
   else feed("Yakında araç yok");
@@ -1345,7 +1632,7 @@ function updatePlayer(dt,time){
         else feed("Çarpışma","hasar"); }
     }
     c.x=nx; c.z=nz;
-    c.spin+=c.v*dt*1.6; c.steer=steer*.32;
+    c.spin+=c.v*dt*1.6; c.steer=steer*.55;
     if(c.dead && Math.random()<dt*14) puff(nx+Math.cos(c.ang)*1.8,1.1,nz+Math.sin(c.ang)*1.8,SMOKE_DEAD,.5);
     else if(c.hp<45 && Math.random()<dt*5) puff(nx+Math.cos(c.ang)*1.8,1.1,nz+Math.sin(c.ang)*1.8,SMOKE_WARN,.4);
     player.x=nx; player.z=nz;
@@ -1387,9 +1674,10 @@ function updatePlayer(dt,time){
     }
     let d=player.tAng-player.ang; while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TAU;
     player.ang+=d*Math.min(1,12*dt);
-    player.mesh.position.set(player.x,0,player.z);
-    player.mesh.rotation.y=player.ang;
-    animLimbs(player.mesh.userData.parts,player.speed,time);
+    /* oyuncu da havuzdaki bir yaya yuvası: yürüyüş çevrimi ortak */
+    playerPed.x=player.x; playerPed.z=player.z; playerPed.ang=player.ang-Math.PI/2;
+    playerPed.on=true;
+    writePed(playerPed,dt,player.speed);
     if(player.speed>5) scareBirds(16);
   }
   if(hp<100) hp=clamp(hp+dt*.5,0,100);
@@ -1456,7 +1744,7 @@ function updateWorld(dt,time){
   const sOn=Math.sin(time*9)>0;
   carMat.sirR.emissiveIntensity=sOn?3.2:.12;
   carMat.sirB.emissiveIntensity=sOn?.12:3.2;
-  carMat.head.emissiveIntensity=nightF*2.4+.15;
+  carMat.far.emissiveIntensity=nightF*2.4+.15;
   for(const c of cars){
     if(!c.on){ writeCar(c); continue; }
     if(c!==inCar){
@@ -1477,9 +1765,9 @@ function updateWorld(dt,time){
     }
     writeCar(c);
   }
-  rigFlush(carMesh);
+  carFlush();
   for(const p of peds){
-    if(!p.on){ writePed(p,time,0); continue; }
+    if(!p.on){ writePed(p,dt,0); continue; }
     if(p.dead){
       /* ezilen yaya bir süre sonra, oyuncu uzaktayken şehre geri döner */
       p.deadT-=dt;
@@ -1487,9 +1775,9 @@ function updateWorld(dt,time){
         const i=ri(1,SEA_I-1), j=ri(1,GRID-1);
         placePed(p,i*CELL+rnd(-20,20),j*CELL+rnd(-20,20));
       }
-      writePed(p,time,0); continue;
+      writePed(p,dt,0); continue;
     }
-    if(p.fixed){ writePed(p,time,0); continue; }
+    if(p.fixed){ writePed(p,dt,0); continue; }
     p.t-=dt; p.fear=Math.max(0,p.fear-dt*.5);
     if(p.t<=0){ p.ang+=rnd(-2,2); p.t=rnd(2,6); }
     const sp=p.sp*(1+p.fear*1.6);
@@ -1500,7 +1788,7 @@ function updateWorld(dt,time){
     if(dist2(p.x,p.z,player.x,player.z)>340*340){
       TMPB.x=player.x+rnd(-90,90); TMPB.z=player.z+rnd(-90,90); pushOut(TMPB,.5);
       p.x=TMPB.x; p.z=TMPB.z; }
-    writePed(p,time,sp);
+    writePed(p,dt,sp);
   }
   rigFlush(pedMesh);
   for(const d of dogs){
@@ -1820,20 +2108,21 @@ nameEl.addEventListener("input",()=>{ errEl.textContent=""; });
 
 /* ═════════════════ kurulum ═════════════════ */
 buildCity();
-player={x:(SEA_I-2)*CELL+6,z:GRID/2*CELL+6,ang:0,tAng:0,speed:0,hitT:0,
-        mesh:human(0xe8c0a0,0x1f6f6a,0x2c3244)};
-scene.add(player.mesh);
+player={x:(SEA_I-2)*CELL+6,z:GRID/2*CELL+6,ang:0,tAng:0,speed:0,hitT:0};
+playerPed=newPed(PED_OYUNCU,true); playerPed.fixed=true;
 dogRig=quadRig(DOGD,Q.dog); catRig=quadRig(CATD,Q.cat);
 for(let k=0;k<CARN;k++) cars.push(newCar(k,k>=Q.car,k<Q.car));
 for(let k=0;k<PEDN;k++) peds.push(newPed(k,k<Q.ped));
 for(let k=0;k<Q.dog;k++) dogs.push(newDog(k));
 for(let k=0;k<Q.cat;k++) cats.push(newCat(k));
-rigColorFlush(carMesh); rigColorFlush(pedMesh); rigColorFlush(dogRig); rigColorFlush(catRig);
+for(const q of SINIF) if(q.boya.instanceColor) q.boya.instanceColor.needsUpdate=true;
+rigColorFlush(pedMesh); rigColorFlush(dogRig); rigColorFlush(catRig);
 for(const c of cars) writeCar(c);
+writePed(playerPed,0,0);
 for(const p of peds) writePed(p,0,0);
 for(const d of dogs) writeQuad(dogRig,d,0,0);
 for(const c of cats) writeQuad(catRig,c,0,0);
-rigFlush(carMesh); rigFlush(pedMesh); rigFlush(dogRig); rigFlush(catRig);
+carFlush(); rigFlush(pedMesh); rigFlush(dogRig); rigFlush(catRig);
 makeBirds(); makeRain(); makeSmoke(); applyTime();
 document.getElementById("load").classList.add("hide");
 feed("Gün batımı. Liman sakin.","yalıkent");
@@ -1895,7 +2184,7 @@ function frame(now){
     wxT+=dt; if(wxT>rnd(75,140)){ wxT=0; setWeather(weather==="rain"?"clear":"rain"); }
     saveT+=dt; if(saveT>25){ saveT=0; saveCfg(); }
     if(hp<=0){ hp=100; wanted=0; crimeT=0;
-      if(inCar){ inCar=null; player.mesh.visible=true; }
+      if(inCar){ inCar=null; playerPed.on=true; }
       if(mission) endMission(false,"Hastanede uyandın");
       money=Math.max(0,money-150);
       player.x=(SEA_I-2)*CELL+6; player.z=GRID/2*CELL+6; player.hitT=0;
