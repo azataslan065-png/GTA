@@ -5,14 +5,20 @@
   "description": "Liman şehrinde sinematik açık dünya. İş al, para kazan, hava değişsin diye bekle.",
   "lang": "tr",
   "dir": "ltr",
-  "start_url": "./yalikent-oyun.html",
+  "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "landscape",
   "background_color": "#080a12",
   "theme_color": "#080a12",
-  "categories": ["games"],
+  "categories": [
+    "games"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {

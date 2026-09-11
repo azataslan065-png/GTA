@@ -1,13 +1,13 @@
 /* Yalıkent — service worker
    Bu dosyanın varlığı önemli: eksik olduğunda Chrome manifest alanlarını
    (özellikle "orientation") yok sayıp eski usul kısayol kuruyor. */
-const CACHE = "yalikent-2026-09-10-A";
+const CACHE = "yalikent-2026-09-10-B";
 
 /* Kurulumda önbelleğe alınacaklar. three.js ve yazı tipleri başka kaynaktan
    geldiği için opak yanıt döner; yine de saklanabilir. */
 const CORE = [
   "./",
-  "./yalikent-oyun.html",
+  "./index.html",
   "./manifest.json",
   "./yalikent-icon-192.png",
   "./yalikent-icon-512.png",
@@ -55,7 +55,7 @@ self.addEventListener("fetch", e => {
         }
         return res;
       }).catch(() =>
-        req.mode === "navigate" ? caches.match("./yalikent-oyun.html") : Response.error()
+        req.mode === "navigate" ? caches.match("./index.html") : Response.error()
       );
     })
   );
