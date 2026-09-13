@@ -1,7 +1,7 @@
 /* Yalıkent — service worker
    Bu dosyanın varlığı önemli: eksik olduğunda Chrome manifest alanlarını
    (özellikle "orientation") yok sayıp eski usul kısayol kuruyor. */
-const CACHE = "yalikent-2026-09-11-E";
+const CACHE = "yalikent-2026-09-11-F";
 
 /* Kurulumda önbelleğe alınacaklar. three.js ve yazı tipleri başka kaynaktan
    geldiği için opak yanıt döner; yine de saklanabilir. */
