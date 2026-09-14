@@ -10,7 +10,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./yalikent-icon-192.png">
 <link rel="apple-touch-icon" href="./yalikent-icon-192.png">
-<title>YALIKENT — Açık Dünya v0.8.3 (2026-09-11-H)</title>
+<title>YALIKENT — Açık Dünya v0.10 (2026-09-11-J)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -209,7 +209,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 <div id="menu" class="hide">
   <div class="panel">
     <div class="full">
-      <div class="lbl">Sinematik açık dünya · v0.8.3</div>
+      <div class="lbl">Sinematik açık dünya · v0.10</div>
       <h1>YALI<b>KENT</b></h1>
       <p class="note">Liman şehri. Gün batıyor, martılar alçalıyor, sokak lambaları yanmak üzere.
       İş al, para kazan, hava değişsin diye bekle.</p>
@@ -246,7 +246,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
       <button class="ghost" id="wipe">Kaydı sil</button>
     </div>
     <p class="note full" style="margin-top:8px">
-      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-H</b> ·
+      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-J</b> ·
       Oyuncu: <b style="color:var(--teal)" id="menuName">—</b><br>
       Fare için tuvale tıkla · <b style="color:var(--paper)">Esc</b> menü ·
       <b style="color:var(--paper)">T</b> zamanı hızlandır ·
@@ -265,14 +265,14 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 </div>
 <div id="gate">
   <div class="gbox">
-    <div class="lbl">Sinematik açık dünya · v0.8.3</div>
+    <div class="lbl">Sinematik açık dünya · v0.10</div>
     <h1>YALI<b>KENT</b></h1>
     <label class="gl" for="pname">İsmini yaz</label>
     <input id="pname" type="text" maxlength="16" placeholder="örn. Deniz"
            autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="gerr" id="gerr"></div>
     <button class="cta" id="gstart">Devam</button>
-    <div class="gver">Yüklü sürüm: <b>2026-09-11-H</b></div>
+    <div class="gver">Yüklü sürüm: <b>2026-09-11-J</b></div>
   </div>
 </div>
 <div id="load">Şehir kuruluyor</div>
@@ -320,12 +320,12 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2, dist2=(ax,az,bx,bz)=>(ax-bx)*(ax-bx)+(az-bz)*(az-bz);
 const TMP={x:0,z:0};   /* her karede yeni nesne üretmemek için ortak tampon */
-const VERSION="2026-09-11-H";
+const VERSION="2026-09-11-J";
 let quality=MOBILE?"mid":"high";
 /* budget = ekrana çizilecek azami piksel sayısı (projeksiyon/4K için kritik) */
-const QSET={low:{px:1,shadow:false,rain:600,ped:8,dog:2,cat:2,bird:12,car:8,fog:1.35,budget:900000},
-            mid:{px:1.5,shadow:true,rain:1200,ped:14,dog:3,cat:2,bird:18,car:12,fog:1.15,budget:1600000},
-            high:{px:2,shadow:true,rain:2400,ped:24,dog:5,cat:3,bird:30,car:18,fog:1,budget:2600000}};
+const QSET={low:{px:1,shadow:false,rain:600,ped:12,dog:2,cat:2,bird:12,car:14,fog:1.35,budget:900000},
+            mid:{px:1.5,shadow:true,rain:1200,ped:20,dog:3,cat:2,bird:18,car:22,fog:1.15,budget:1600000},
+            high:{px:2,shadow:true,rain:2400,ped:34,dog:5,cat:3,bird:30,car:34,fog:1,budget:2600000}};
 let Q=Object.assign({},QSET[quality]);   /* kopya: preset'i bozmasın */
 let playerName="";
 
@@ -732,7 +732,11 @@ function addRect(r){
   const j0=clamp(Math.floor(r.z/CELL),0,GRID-1), j1=clamp(Math.floor((r.z+r.d)/CELL),0,GRID-1);
   for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++) rectGrid[i][j].push(r);
 }
-const nearRects=(x,z)=>rectGrid[clamp(Math.floor(x/CELL),0,GRID-1)][clamp(Math.floor(z/CELL),0,GRID-1)];
+/* İçerideyken şehrin ızgara tablosu geçerli değil: iç mekân harita dışında
+   duruyor ve kendi duvar listesi var. */
+let iceride=null, inBoat=null;
+const nearRects=(x,z)=> iceride ? icRect[iceride.tip]
+  : rectGrid[clamp(Math.floor(x/CELL),0,GRID-1)][clamp(Math.floor(z/CELL),0,GRID-1)];
 /* Blok içleri kaldırım seviyesinde. Araç ve yayalar bu yüksekliğe oturmalı,
    yoksa kaldırıma çıkan aracın tekerlekleri zemine yarıya kadar gömülüyor. */
 const parkHucre=new Set();
@@ -1166,6 +1170,125 @@ const KURUM_PLAN=[["cami",2],["hastane",1],["karakol",2],["okul",2],["benzinlik"
   ["market",3],["dukkanlar",5],["eczane",5],["kahvehane",6]];
 
 const kurumSayac={}; let aptSayisi=0;
+
+/* ═════════════════ İÇ MEKÂNLAR ═════════════════
+   Her binaya ayrı iç mekân modellemek 470 bina için imkânsız. Bunun yerine
+   üç iç mekân tipi haritanın dışında bir kez kuruluyor; kapıdan girildiğinde
+   oyuncu oraya taşınıyor. Duvar çarpışması için ayrı bir dikdörtgen listesi
+   var, çünkü şehrin ızgara tablosu harita dışını kapsamıyor. */
+const IC_X=-300, IC_Z=420, IC_ARA=70;
+const icRect={daire:[],dukkan:[],kurum:[]};
+const icGiris={}, icKapi={};
+const kapilar=[];
+/* Dikkat: yp yerel koordinatı YTABAN ile dünyaya taşıyor. Çarpışma
+   dikdörtgenleri de aynı kaydırmayı almalı; önce yerel bırakılmışlardı ve
+   duvarlar görüntüde bir yerde, çarpışmada başka yerdeydi. */
+function icDunya(x,z,w,d,tip){
+  const e=YTABAN.elements;
+  icRect[tip].push({x:e[12]+x-w/2,z:e[14]+z-d/2,w:w,d:d});
+}
+function icDuvar(tip,x,y,z,w,h,d,renk){
+  yp(K_RENK(),kutuG(w,h,d),x,y+h/2,z,0,0,0,renk);
+  icDunya(x,z,w,d,tip);
+}
+function icEsya(x,y,z,w,h,d,renk,carpisma,tip){
+  yp(K_RENK(),kutuG(w,h,d),x,y+h/2,z,0,0,0,renk);
+  if(carpisma) icDunya(x,z,w,d,tip);
+}
+/* boşluklu duvar: kapı ve geçişler için */
+function icDuvarBoslukX(tip,x0,x1,z,bosMerkez,bosGen,h,kal,renk){
+  const sol=bosMerkez-bosGen/2, sag=bosMerkez+bosGen/2;
+  if(sol>x0) icDuvar(tip,(x0+sol)/2,0,z,sol-x0,h,kal,renk);
+  if(x1>sag) icDuvar(tip,(sag+x1)/2,0,z,x1-sag,h,kal,renk);
+}
+function icDuvarBoslukZ(tip,z0,z1,x,bosMerkez,bosGen,h,kal,renk){
+  const alt=bosMerkez-bosGen/2, ust=bosMerkez+bosGen/2;
+  if(alt>z0) icDuvar(tip,x,0,(z0+alt)/2,kal,h,alt-z0,renk);
+  if(z1>ust) icDuvar(tip,x,0,(ust+z1)/2,kal,h,z1-ust,renk);
+}
+function icMekanKur(){
+  const H=2.9, KAL=.28, DUVAR=0xe6e1d4, ZEMIN=0x8a7355, KAPI=0x6b4a32;
+  /* ── daire: hol + iki oda + mutfak ── */
+  (()=>{
+    const tip="daire", W=15, D=11, ox=IC_X, oz=IC_Z;
+    trs(YTABAN,ox,0,oz,0,0,0);
+    yp(K_RENK(),kutuG(W,.2,D),0,-.1,0,0,0,0,ZEMIN);
+    icDuvar(tip,0,0,D/2,W,H,KAL,DUVAR);   /* giriş cephesi kapalı: çıkış tuşla */
+    icDuvar(tip,0,0,-D/2,W,H,KAL,DUVAR);
+    icDuvar(tip,-W/2,0,0,KAL,H,D,DUVAR);
+    icDuvar(tip, W/2,0,0,KAL,H,D,DUVAR);
+    icDuvarBoslukX(tip,-W/2,W/2,0,-W*.28,1.3,H,KAL,DUVAR);   /* hol ayrımı */
+    icDuvarBoslukZ(tip,-D/2,0,0,-D*.28,1.3,H,KAL,DUVAR);     /* iki oda arası */
+    /* eşya */
+    icEsya(-W*.3,0,-D*.3,2.0,.5,1.5,0x8f5a4a,true,tip);       /* yatak */
+    icEsya(-W*.3,.5,-D*.42,1.9,.28,.35,0xf2efe6,false,tip);   /* yastık */
+    icEsya(-W*.42,0,-D*.05,.6,2.0,1.4,0x6b4a32,true,tip);     /* dolap */
+    icEsya(W*.22,0,-D*.28,1.6,.75,.9,0x4a5a6b,true,tip);      /* masa */
+    icEsya(W*.22,0,-D*.06,.5,.9,.5,0x7a5a3c,true,tip);        /* sandalye */
+    icEsya(W*.3,0,D*.25,2.6,.7,.9,0x3c5a46,true,tip);         /* kanepe */
+    icEsya(-W*.32,0,D*.28,2.4,.9,.7,0xbfb5a2,true,tip);       /* mutfak tezgâhı */
+    icEsya(-W*.32,.9,D*.28,.5,.6,.5,0xa9aeb6,false,tip);
+    yp(K_RENK(),kutuG(1.5,2.2,.1),0,1.1,D/2,0,0,0,KAPI);      /* kapı kanadı */
+    icGiris[tip]={x:ox,z:oz+D/2-1.4};
+    icKapi[tip]={x:ox,z:oz+D/2-.6};
+  })();
+  /* ── dükkân: satış alanı + tezgâh + depo ── */
+  (()=>{
+    const tip="dukkan", W=13, D=10, ox=IC_X, oz=IC_Z+IC_ARA;
+    trs(YTABAN,ox,0,oz,0,0,0);
+    yp(K_RENK(),kutuG(W,.2,D),0,-.1,0,0,0,0,0xbfb5a2);
+    icDuvar(tip,0,0,D/2,W,H,KAL,DUVAR);
+    icDuvar(tip,0,0,-D/2,W,H,KAL,DUVAR);
+    icDuvar(tip,-W/2,0,0,KAL,H,D,DUVAR);
+    icDuvar(tip, W/2,0,0,KAL,H,D,DUVAR);
+    icDuvarBoslukX(tip,-W/2,W/2,-D*.20,W*.3,1.9,H,KAL,DUVAR); /* depo: derin ve geniş kapı */
+    icEsya(0,0,D*.05,6.0,1.0,.8,0x6b4a32,true,tip);            /* tezgâh */
+    icEsya(0,1.0,D*.05,5.6,.12,.9,0xd8d2c4,false,tip);
+    /* Raflar görsel olarak ayrı ama çarpışmada tek blok: aralarında
+       insanın sığmadığı ve erişilemeyen cepler kalıyordu. */
+    for(const yan of [-1,1]){
+      for(let i=0;i<3;i++)
+        icEsya(yan*W*.36,0,-D*.05+i*1.6,.7,2.1,1.2,0x9aa0a8,false,tip);
+      icDunya(yan*W*.36,-D*.05+1.6,.7,4.4,tip);
+    }
+    /* Koliler arka duvara dayıyor: ortada dursaydı arkasında insanın
+       sığmadığı bir cep kalıyordu. */
+    icEsya(-W*.2,0,-D/2+KAL/2+.32,1.4,1.2,.62,0x7a5a3c,true,tip);
+    yp(K_RENK(),kutuG(1.8,2.3,.1),0,1.15,D/2,0,0,0,0x1d3440);
+    icGiris[tip]={x:ox,z:oz+D/2-1.5};
+    icKapi[tip]={x:ox,z:oz+D/2-.6};
+  })();
+  /* ── kurum: giriş holu + banko + bekleme ── */
+  (()=>{
+    const tip="kurum", W=18, D=13, ox=IC_X, oz=IC_Z+IC_ARA*2;
+    trs(YTABAN,ox,0,oz,0,0,0);
+    yp(K_RENK(),kutuG(W,.2,D),0,-.1,0,0,0,0,0xd8dcdc);
+    icDuvar(tip,0,0,D/2,W,H,KAL,DUVAR);
+    icDuvar(tip,0,0,-D/2,W,H,KAL,DUVAR);
+    icDuvar(tip,-W/2,0,0,KAL,H,D,DUVAR);
+    icDuvar(tip, W/2,0,0,KAL,H,D,DUVAR);
+    icDuvarBoslukZ(tip,-D/2,D/2,W*.22,-D*.2,1.4,H,KAL,DUVAR);  /* koridor */
+    icEsya(-W*.18,0,-D*.28,5.0,1.1,1.0,0x4a5a6b,true,tip);      /* banko */
+    icEsya(-W*.18,1.1,-D*.28,5.2,.12,1.2,0xe6e1d4,false,tip);
+    for(let i=0;i<4;i++)
+      icEsya(-W*.3+i*2.2,0,D*.22,1.8,.5,.6,0x3c5a46,true,tip);  /* bekleme sıraları */
+    icEsya(W*.36,0,0,.8,2.2,2.6,0x9aa0a8,true,tip);             /* dolap duvarı */
+    yp(K_RENK(),kutuG(2.2,2.4,.1),0,1.2,D/2,0,0,0,KAPI);
+    icGiris[tip]={x:ox,z:oz+D/2-1.7};
+    icKapi[tip]={x:ox,z:oz+D/2-.7};
+  })();
+  trs(YTABAN,0,0,0,0,0,0);
+  /* içerisi için sıcak ışık */
+  for(const tip in icGiris){
+    const l=new THREE.PointLight(0xffdca8,1.5,26,1.6);
+    l.position.set(icGiris[tip].x,2.6,icGiris[tip].z-3);
+    scene.add(l);
+  }
+}
+/* bina kapısı kaydet: yerel +Z cepheye bakıyor */
+function kapiEkle(tip,cx,cz,ry,derinlik){
+  kapilar.push({x:cx+Math.sin(ry)*derinlik,z:cz+Math.cos(ry)*derinlik,tip,ry});
+}
 function kurumYerlestir(tip,L){
   kurumSayac[tip]=(kurumSayac[tip]||0)+1;
   const cx=L.x+L.w/2, cz=L.z+L.d/2;
@@ -1179,6 +1302,8 @@ function kurumYerlestir(tip,L){
   if(ry===Math.PI/2||ry===-Math.PI/2){ en=L.d; boy=L.w; }
   trs(YTABAN,cx,0,cz,0,ry,0);
   KURUM[tip](en*.92,boy*.92);
+  kapiEkle(tip==="dukkanlar"||tip==="market"||tip==="eczane"||tip==="kahvehane"?"dukkan":"kurum",
+           cx,cz,ry,boy/2+.9);
 }
 
 function buildCity(){
@@ -1200,16 +1325,55 @@ function buildCity(){
     new THREE.MeshStandardMaterial({color:0x6d6a62,roughness:.95}));
   quay.position.set(SEA_I*CELL+ROAD/2+3,.4,WORLD/2); quay.receiveShadow=true; castsShadow(quay);
   scene.add(quay);
-  // tekneler
-  for(let k=0;k<7;k++){
-    const b=new THREE.Group();
-    const hull=new THREE.Mesh(new THREE.BoxGeometry(9,1.6,3.2),
-      new THREE.MeshStandardMaterial({color:pick([0xd8d2c4,0x2f5f8f,0xb8452f]),roughness:.6}));
-    const cab=new THREE.Mesh(new THREE.BoxGeometry(3,1.6,2.4),new THREE.MeshStandardMaterial({color:0xece7d8}));
-    cab.position.set(-1,1.5,0); hull.position.y=.6; b.add(hull); b.add(cab);
-    b.position.set(SEA_I*CELL+ROAD/2+rnd(12,60),0,rnd(40,WORLD-40));
-    b.rotation.y=rnd(0,TAU); b.userData.ph=rnd(0,9); boats.push(b); scene.add(b);
+  /* Liman. Her tekne kendi içinde tek mesh'e birleştiriliyor (sallanması için
+     ayrı nesne olmak zorunda), iskele ve şamandıralar ise şehrin ortak
+     kovalarına giriyor — böylece 16 tekne toplam 16 çizim çağrısı tutuyor. */
+  const DENIZ_X=SEA_I*CELL+ROAD/2;
+  const tekneMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.65,metalness:.05});
+  const TEKNE=[
+    {uz:9, en:3.2,yuk:1.6,kab:[3,1.6,2.4],  ek:0},
+    {uz:22,en:6.5,yuk:2.6,kab:[9,3.2,5],    ek:1},
+    {uz:34,en:9,  yuk:3.4,kab:[8,3.6,7],    ek:1},
+    {uz:8, en:2.6,yuk:1.2,kab:[2,.9,1.8],   ek:2}
+  ];
+  for(let k=0;k<16;k++){
+    const t=pick(TEKNE), par=[];
+    const govdeR=pick([0xd8d2c4,0x2f5f8f,0xb8452f,0x35604a,0x2a2f3c]);
+    ekle(par,prizma(t.uz,t.en,t.uz*.82,t.en*.55,t.yuk),0,0,0,0,0,0,govdeR);
+    ekle(par,new THREE.BoxGeometry(t.kab[0],t.kab[1],t.kab[2]),
+      -t.uz*.12,t.yuk+t.kab[1]/2,0,0,0,0,0xece7d8);
+    if(t.ek===1)
+      ekle(par,new THREE.CylinderGeometry(.5,.6,2.4,10),
+        -t.uz*.2,t.yuk+t.kab[1]+1.2,0,0,0,0,0xb8452f);
+    else if(t.ek===2){
+      ekle(par,new THREE.CylinderGeometry(.09,.11,8,8),0,t.yuk+4,0,0,0,0,0xd8cdb4);
+      ekle(par,prizma(4.4,.12,.5,.12,6),1.8,t.yuk+.4,0,0,0,0,0xf2efe6);
+    }
+    const b=new THREE.Mesh(birlestir(par,true),tekneMat);
+    b.position.set(DENIZ_X+rnd(14,150),0,rnd(30,WORLD-30));
+    /* Araçlarla aynı yön kuralı: ileri = (cos ang, sin ang), rotation.y = -ang */
+    b.userData={ph:rnd(0,9),ang:rnd(0,TAU),v:0,gemi:true,
+      ad:t.uz>28?"Yük gemisi":(t.uz>18?"Vapur":(t.ek===2?"Yelkenli":"Balıkçı teknesi")),
+      uz:t.uz,top:t.uz>28?9:(t.uz>18?12:15),guverte:t.yuk+.4};
+    b.rotation.y=-b.userData.ang;
+    castsShadow(b); boats.push(b); scene.add(b);
   }
+  /* iskeleler ve şamandıralar: hareketsiz, ortak kovaya */
+  trs(YTABAN,0,0,0,0,0,0);
+  for(let k=0;k<3;k++){
+    const z=WORLD*(.25+k*.25), uzunluk=rnd(26,40);
+    yp(K_RENK(),new THREE.BoxGeometry(uzunluk,.5,5),
+      DENIZ_X+uzunluk/2+3,.55,z,0,0,0,0x8a7355);
+    for(let i=0;i<Math.floor(uzunluk/6);i++){
+      yp(K_RENK(),new THREE.CylinderGeometry(.22,.26,2.2,8),
+        DENIZ_X+4+i*6,-.3,z+2,0,0,0,0x6b5a43);
+      yp(K_RENK(),new THREE.CylinderGeometry(.22,.26,2.2,8),
+        DENIZ_X+4+i*6,-.3,z-2,0,0,0,0x6b5a43);
+    }
+  }
+  for(let k=0;k<10;k++)
+    yp(K_RENK(),new THREE.SphereGeometry(.55,10,8),
+      DENIZ_X+rnd(20,180),.1,rnd(20,WORLD-20),0,0,0,pick([0xd94c4c,0xf0a500]));
 
   const slabs=[], parks=[], lots=[[],[],[],[]];
   for(let i=0;i<GRID;i++)for(let j=0;j<GRID;j++){
@@ -1248,6 +1412,7 @@ function buildCity(){
     }
   }
   for(let ci=0;ci<lots.length;ci++) lots[ci]=lots[ci].filter(L=>!L.ozel);
+  icMekanKur();
   asama("kurum yapıları");
   for(const L of tumLot) if(L.ozel) kurumYerlestir(L.ozel,L);
   kovalariBirlestir();
@@ -1279,6 +1444,9 @@ function buildCity(){
     const pi=aptSec(dik?L.d:L.w, dik?L.w:L.d);
     if(pi<0) continue;
     atama.push({pi,cx,cz,ry});
+    /* Kapı tetikleyicisi parselin çarpışma dikdörtgeninin dışında olmalı,
+       aksi hâlde oyuncu ona hiç yaklaşlamıyor. */
+    kapiEkle("daire",cx,cz,ry,(dik?L.w:L.d)/2+.9);
   }
   const renkT=new THREE.Color();
   APT_PROTO.forEach((pr,pi)=>{
@@ -2137,7 +2305,7 @@ function setWeather(w){ weather=w;
   feed(w==="rain"?"Denizden yağmur geliyor":"Bulutlar dağıldı","hava"); }
 
 /* ═════════════════ hareket ═════════════════ */
-let hintText="";
+let hintText="", bakisSerbest=0;
 const MOVE={x:0,y:0}, TMPA={x:0,z:0}, TMPB={x:0,z:0};
 function moveAxes(){
   let x=(held("right")?1:0)-(held("left")?1:0);
@@ -2151,20 +2319,75 @@ function moveAxes(){
    yayada koş. Geçiş araç değiştiği anda kendiliğinden oluyor. */
 let sonKontrolMod=null;
 function kontrolModu(){
+  const durum=(inCar?"arac":(inBoat?"tekne":(iceride?"ic":
+    (yakinGemi?"gemi":(yakinKapi?"kapi":"yaya")))));
+  if(sonKontrolMod===durum) return;
+  sonKontrolMod=durum;
   const arac=!!inCar;
-  if(sonKontrolMod===arac) return;
-  sonKontrolMod=arac;
   if(!MOBILE) return;
   const g=id=>document.getElementById(id);
   const yaz=(id,metin,gizli)=>{ const e=g(id); if(!e) return;
     if(metin!==null) e.textContent=metin; e.classList.toggle("yok",!!gizli); };
   const foto=CAMS[camMode]==="Foto";
-  yaz("tUse",arac?"İn":"Bin",false);
-  yaz("tGas",arac?"Gaz":"Koş",false);
-  yaz("tBrk","Fren",!arac);
+  yaz("tUse",(arac||inBoat)?"İn":(iceride?"Çık":((yakinKapi||yakinGemi)?"Bin":"Bin")),false);
+  yaz("tGas",(arac||inBoat)?"Gaz":"Koş",false);
+  yaz("tBrk","Fren",!arac&&!inBoat);
   yaz("tHorn",foto?"Çek":"Korna",!arac&&!foto);
   yaz("tCam","Kam",false);
   yaz("tJob","İş",false);
+}
+
+/* ══ kapıdan giriş çıkış ══ */
+let yakinKapi=null;
+let yakinGemi=null;
+function kapiTara(){
+  yakinKapi=null; yakinGemi=null;
+  if(inCar||inBoat||iceride||!player) return;
+  let eg=9*9;
+  for(const b of boats){
+    if(!b.userData.gemi) continue;
+    const d=dist2(b.position.x,b.position.z,player.x,player.z);
+    if(d<eg){ eg=d; yakinGemi=b; }
+  }
+  let en=2.8*2.8;
+  for(const k of kapilar){
+    const d=dist2(k.x,k.z,player.x,player.z);
+    if(d<en){ en=d; yakinKapi=k; }
+  }
+}
+const icKapidaMi=()=>iceride&&dist2(icKapi[iceride.tip].x,icKapi[iceride.tip].z,
+  player.x,player.z)<3.2*3.2;
+function iceriGir(k){
+  iceride={tip:k.tip,disX:player.x,disZ:player.z};
+  const g=icGiris[k.tip];
+  player.x=g.x; player.z=g.z; player.y=0; player.speed=0;
+  playerPed.x=g.x; playerPed.z=g.z; playerPed.y=0;
+  yaw=Math.PI;                         /* kapıya sırtı dönük, içeri bakıyor */
+  yakinKapi=null; sonKontrolMod=null; kontrolModu();
+  flash(); sfx.door();
+  feed(k.tip==="daire"?"Daireye girdin":(k.tip==="dukkan"?"Dükkâna girdin":"İçeri girdin"),"kapı");
+  const mn=document.getElementById("mini"); if(mn) mn.style.opacity="0";
+}
+function icerdenCik(){
+  const d=iceride; iceride=null;
+  player.x=d.disX; player.z=d.disZ; player.y=zeminY(d.disX,d.disZ);
+  player.speed=0; sonKontrolMod=null; kontrolModu();
+  flash(); sfx.door(); feed("Dışarı çıktın","kapı");
+  const mn=document.getElementById("mini"); if(mn) mn.style.opacity="";
+}
+
+function gemiyeBin(b){
+  inBoat=b; playerPed.on=false; b.userData.v=0;
+  yaw=Math.PI/2-b.userData.ang;
+  sonKontrolMod=null; kontrolModu(); sfx.door();
+  feed(b.userData.ad+"'e bindin","deniz");
+}
+function gemidenIn(){
+  const b=inBoat; inBoat=null; playerPed.on=true;
+  player.x=b.position.x-Math.sin(b.userData.ang)*(b.userData.uz*.3+2);
+  player.z=b.position.z+Math.cos(b.userData.ang)*(b.userData.uz*.3+2);
+  player.y=0; player.speed=0;
+  sonKontrolMod=null; kontrolModu(); sfx.door(); feed("Tekneden indin","deniz");
 }
 
 function toggleCar(){
@@ -2178,7 +2401,7 @@ function toggleCar(){
   for(const c of cars){ if(!c.on) continue;
     const d=dist2(c.x,c.z,player.x,player.z);
     if(d<bd){bd=d;best=c;} }
-  if(best){ inCar=best; playerPed.on=false; yaw=best.ang+Math.PI; kontrolModu();
+  if(best){ inCar=best; playerPed.on=false; yaw=Math.PI/2-best.ang; kontrolModu();
     feed(best.cop?"Devriye aracını gasp ettin — "+best.cl.n:best.cl.n+"'e bindin","sürüş");
     if(best.cop){ wanted=Math.min(5,wanted+2); crimeT=0; } }
   else feed("Yakında araç yok");
@@ -2211,6 +2434,45 @@ function updatePlayer(dt,time){
   moveF.x+=(rawA.x-moveF.x)*km; moveF.y+=(rawA.y-moveF.y)*km;
   if(Math.abs(moveF.x)<.004) moveF.x=0;
   if(Math.abs(moveF.y)<.004) moveF.y=0;
+
+  /* Araç ve teknede kamera kendiliğinden arkaya geçer. Eskiden kamera
+     serbestti: oyuncu aracın önünden bakınca "sağ" ekranda sola düşüyor,
+     direksiyon ters gibi hissediliyordu. Oyuncu bakarken hizalama durur. */
+  if(inCar||inBoat){
+    if(Math.abs(lookF.x)>.03||Math.abs(lookF.y)>.03) bakisSerbest=1.3;
+    else bakisSerbest=Math.max(0,bakisSerbest-dt);
+    if(bakisSerbest<=0){
+      const ang=inCar?inCar.ang:inBoat.userData.ang;
+      let d=(Math.PI/2-ang)-yaw;
+      while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TAU;
+      const hiz=inCar?(1.7+clamp(Math.abs(inCar.v)/10,0,1)*3.0):2.2;
+      yaw+=d*Math.min(1,hiz*dt);
+    }
+  } else bakisSerbest=0;
+
+  if(inBoat){
+    const b=inBoat, u=b.userData;
+    let thr=trig("sprint")-trig("brake");
+    if(Math.abs(thr)<.06) thr=-moveF.y;
+    u.v+=thr*7*dt; u.v*=Math.pow(.72,dt);
+    u.v=clamp(u.v,-u.top*.35,u.top);
+    if(Math.abs(u.v)>.3)
+      u.ang+=(-moveF.x)*.62*dt*clamp(Math.abs(u.v)/6,.25,1)*Math.sign(u.v);
+    const nx=b.position.x+Math.cos(u.ang)*u.v*dt;
+    const nz=b.position.z+Math.sin(u.ang)*u.v*dt;
+    /* denizde kal */
+    b.position.x=clamp(nx,SEA_I*CELL+ROAD/2+9,WORLD*1.35);
+    b.position.z=clamp(nz,12,WORLD-12);
+    b.rotation.y=-u.ang;
+    player.x=b.position.x; player.z=b.position.z; player.y=u.guverte;
+    player.speed=Math.abs(u.v);
+    headL.intensity=0;
+    if(Math.abs(u.v)>3&&Math.random()<dt*10)
+      puff(b.position.x-Math.cos(u.ang)*u.uz*.5,.3,b.position.z-Math.sin(u.ang)*u.uz*.5,
+           SMOKE_TIRE,.5);
+    if(hp<100) hp=clamp(hp+dt*.5,0,100);
+    return;
+  }
   if(inCar){
     const c=inCar, cl=c.cl;
     let thr=trig("sprint")-trig("brake");
@@ -2246,7 +2508,11 @@ function updatePlayer(dt,time){
         else feed("Çarpışma","hasar"); }
     }
     c.x=nx; c.z=nz;
-    c.spin+=c.v*dt*1.6; c.steer=steer*.55;
+    c.spin+=c.v*dt*1.6;
+    /* Gövdenin dönüşü rotation.y=-ang, tekerlek yuvası ise +steer.
+       Aynı yöne bakmaları için işaret ters çevrilmeli; önceden tekerlekler
+       aracın aksine dönüyordu. */
+    c.steer=-steer*.55;
     if(c.dead && Math.random()<dt*14) puff(nx+Math.cos(c.ang)*1.8,1.1,nz+Math.sin(c.ang)*1.8,SMOKE_DEAD,.5);
     else if(c.hp<45 && Math.random()<dt*5) puff(nx+Math.cos(c.ang)*1.8,1.1,nz+Math.sin(c.ang)*1.8,SMOKE_WARN,.4);
     player.x=nx; player.z=nz; player.y=c.y||0;
@@ -2266,7 +2532,9 @@ function updatePlayer(dt,time){
     const sp=held("sprint")?6.4:3.1, m=Math.hypot(moveF.x,moveF.y);
     if(m>.08){
       const ca=Math.cos(yaw), sa=Math.sin(yaw), mm=Math.max(m,1);
-      const dx=(moveF.x*ca-moveF.y*sa)/mm, dz=(moveF.x*sa+moveF.y*ca)/mm;
+      /* Yanal eksen ekranın tersineydi: sağa basınca karakter sola kayıyordu. */
+      const yx=-moveF.x;
+      const dx=(yx*ca-moveF.y*sa)/mm, dz=(yx*sa+moveF.y*ca)/mm;
       player.x+=dx*sp*dt*Math.min(m,1); player.z+=dz*sp*dt*Math.min(m,1);
       player.tAng=Math.atan2(dx,dz); player.speed=sp*Math.min(m,1);
     } else player.speed*=Math.pow(.02,dt);
@@ -2355,7 +2623,7 @@ function chaseAI(c,dt){
   c.v+=((d<9?4:28)-c.v)*Math.min(1,1.2*dt);
   TMPA.x=c.x+Math.cos(c.ang)*c.v*dt; TMPA.z=c.z+Math.sin(c.ang)*c.v*dt;
   if(pushOut(TMPA,1.6)){ c.v*=.4; c.ang+=rnd(-1,1)*dt*4; }
-  c.x=TMPA.x; c.z=TMPA.z; c.spin+=c.v*dt*1.6; c.steer=clamp(diff,-.4,.4);
+  c.x=TMPA.x; c.z=TMPA.z; c.spin+=c.v*dt*1.6; c.steer=-clamp(diff,-.4,.4);
   if(d<6){ hp-=(inCar?7:16)*dt; shake=Math.max(shake,.22); }
 }
 function updateWorld(dt,time){
@@ -2374,7 +2642,7 @@ function updateWorld(dt,time){
       }
       const far=dist2(c.x,c.z,player.x,player.z);
       if(c.cop&&wanted===0&&far>200*200){ c.on=false; writeCar(c); continue; }
-      if(!c.cop && far>520*520){
+      if(!iceride && !c.cop && far>520*520){
         const d=pick(DIRS), i=clamp(Math.round(player.x/CELL)+ri(-3,3),1,SEA_I-1),
               j=clamp(Math.round(player.z/CELL)+ri(-3,3),1,GRID-1);
         laneOff(d,LO);
@@ -2401,7 +2669,8 @@ function updateWorld(dt,time){
     p.fear=Math.max(0,p.fear-dt*.5);
     const sp=p.sp*(1+p.fear*1.6);
     yayaYurut(p,dt,sp);
-    if(dist2(p.x,p.z,player.x,player.z)>340*340) kaldirimaYerlestir(p,player.x,player.z);
+    if(!iceride && dist2(p.x,p.z,player.x,player.z)>340*340)
+      kaldirimaYerlestir(p,player.x,player.z);
     p.y=zeminY(p.x,p.z);
     writePed(p,dt,sp);
   }
@@ -2466,7 +2735,8 @@ function updateWorld(dt,time){
   birds.instanceMatrix.needsUpdate=true;
   if(Math.random()<dt*.25) sfx.gull();
   // tekneler sallanır
-  boats.forEach(b=>{ b.userData.ph+=dt; b.position.y=Math.sin(b.userData.ph*.8)*.18;
+  boats.forEach(b=>{ b.userData.ph+=dt;
+    b.position.y=Math.sin(b.userData.ph*.8)*(b===inBoat?.09:.18);
     b.rotation.z=Math.sin(b.userData.ph*.6)*.035; });
   // aranma
   if(wanted>0){
@@ -2496,7 +2766,8 @@ const CAMS=["Takip","Kaput","Tampon","Sinematik","Foto"];
 let camMode=0, shake=0, cineT=0, cineShot=0;
 const camPos=new THREE.Vector3(), camLook=new THREE.Vector3();
 function updateCamera(dt,time){
-  const speedK=inCar?clamp(Math.abs(inCar.v)/inCar.cl.top,0,1):clamp(player.speed/6.4,0,1);
+  const speedK=inCar?clamp(Math.abs(inCar.v)/inCar.cl.top,0,1):
+    (inBoat?clamp(Math.abs(inBoat.userData.v)/12,0,1):clamp(player.speed/6.4,0,1));
   const zy=inCar?(inCar.y||0):(player.y||0);   /* kaldırımda kamera da yükselsin */
   const mode=CAMS[camMode];
   if(hit("look")) yaw=(inCar?inCar.ang:player.ang)+Math.PI;
@@ -2520,7 +2791,8 @@ function updateCamera(dt,time){
     camLook.set(player.x,1.3+zy,player.z);
     camera.position.lerp(camPos,ez(2.6));
   } else {
-    const tgtY=(inCar?1.9:1.5)+zy, dist=(inCar?9.5:5.6)+speedK*2.8;
+    const tgtY=(inCar?1.9:(inBoat?3.2:1.5))+zy,
+          dist=(inCar?9.5:(inBoat?(inBoat.userData.uz*.9+8):5.6))+speedK*2.8;
     camPos.set(player.x-Math.sin(yaw)*Math.cos(pitch)*dist,
                Math.max(tgtY+Math.sin(pitch)*dist+1.1,.9),
                player.z-Math.cos(yaw)*Math.cos(pitch)*dist);
@@ -2771,6 +3043,12 @@ function frame(now){
   /* giriş ekranındayken sahne çizilmez; tuş tamponu da birikmemeli */
   if(!gateDone){ for(const k in pressed) pressed[k]=false; return; }
   hintText="";
+  kapiTara();
+  if(MOBILE) kontrolModu();
+  if(iceride) hintText=icKapidaMi()?keyName(bind.use.key)+" — dışarı çık":"";
+  else if(inBoat) hintText=keyName(bind.use.key)+" — tekneden in";
+  else if(yakinGemi) hintText=keyName(bind.use.key)+" — tekneye bin";
+  else if(yakinKapi) hintText=keyName(bind.use.key)+" — içeri gir";
 
   if(hit("menu")){ started=!started; menuEl.classList.toggle("hide",started);
     if(started){ goFullscreen(); initAudio(); }
@@ -2778,7 +3056,13 @@ function frame(now){
     drawBinds(); }
 
   if(started){
-    if(hit("use")) toggleCar();
+    if(hit("use")){
+      if(iceride){ if(icKapidaMi()) icerdenCik(); }
+      else if(inBoat) gemidenIn();
+      else if(yakinGemi) gemiyeBin(yakinGemi);
+      else if(yakinKapi) iceriGir(yakinKapi);
+      else toggleCar();
+    }
     /* foto modunda korna tuşu deklanşör olur (mobilde de aynı tuş) */
     const shotNow=hit("shot")||(CAMS[camMode]==="Foto"&&hit("horn"));
     if(shotNow) takeShot(); else if(hit("horn")) honk();
@@ -2845,7 +3129,7 @@ function frame(now){
     const h=Math.floor(hour), m=Math.floor((hour%1)*60);
     clockEl.textContent=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
     spdEl.innerHTML=(inCar?Math.round(Math.abs(inCar.v)*3.6):0)+' <em>KM/S</em>';
-    carEl.textContent=inCar?inCar.cl.n+" · "+CAMS[camMode]:"yaya · "+CAMS[camMode];
+    carEl.textContent=(inCar?inCar.cl.n:(inBoat?inBoat.userData.ad:"yaya"))+" · "+CAMS[camMode];
     hpEl.style.width=hp+"%"; hpEl.style.background=hp<35?"#ff5468":"#3fe0c0";
     dmgEl.style.width=(inCar?clamp(inCar.hp,0,100):0)+"%";
     moneyEl.textContent="₺"+money;
