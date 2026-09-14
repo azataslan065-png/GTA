@@ -10,7 +10,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./yalikent-icon-192.png">
 <link rel="apple-touch-icon" href="./yalikent-icon-192.png">
-<title>YALIKENT — Açık Dünya v0.8 (2026-09-11-E)</title>
+<title>YALIKENT — Açık Dünya v0.8.1 (2026-09-11-F)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -209,7 +209,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 <div id="menu" class="hide">
   <div class="panel">
     <div class="full">
-      <div class="lbl">Sinematik açık dünya · v0.8</div>
+      <div class="lbl">Sinematik açık dünya · v0.8.1</div>
       <h1>YALI<b>KENT</b></h1>
       <p class="note">Liman şehri. Gün batıyor, martılar alçalıyor, sokak lambaları yanmak üzere.
       İş al, para kazan, hava değişsin diye bekle.</p>
@@ -246,7 +246,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
       <button class="ghost" id="wipe">Kaydı sil</button>
     </div>
     <p class="note full" style="margin-top:8px">
-      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-E</b> ·
+      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-F</b> ·
       Oyuncu: <b style="color:var(--teal)" id="menuName">—</b><br>
       Fare için tuvale tıkla · <b style="color:var(--paper)">Esc</b> menü ·
       <b style="color:var(--paper)">T</b> zamanı hızlandır ·
@@ -265,14 +265,14 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 </div>
 <div id="gate">
   <div class="gbox">
-    <div class="lbl">Sinematik açık dünya · v0.8</div>
+    <div class="lbl">Sinematik açık dünya · v0.8.1</div>
     <h1>YALI<b>KENT</b></h1>
     <label class="gl" for="pname">İsmini yaz</label>
     <input id="pname" type="text" maxlength="16" placeholder="örn. Deniz"
            autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="gerr" id="gerr"></div>
     <button class="cta" id="gstart">Devam</button>
-    <div class="gver">Yüklü sürüm: <b>2026-09-11-E</b></div>
+    <div class="gver">Yüklü sürüm: <b>2026-09-11-F</b></div>
   </div>
 </div>
 <div id="load">Şehir kuruluyor</div>
@@ -289,6 +289,28 @@ if("serviceWorker" in navigator) addEventListener("load",()=>{
 (() => {
 "use strict";
 if(!window.THREE){ document.getElementById("load").textContent="three.js yüklenemedi"; return; }
+/* Bir istisna olursa oyun "ŞEHİR KURULUYOR" ekranında askıda kalıyordu ve
+   sebebi telefonda görünmüyordu. Artık hatayı ekrana yazıyor. */
+function hataGoster(baslik,ayrinti){
+  const el=document.getElementById("load");
+  if(!el) return;
+  el.classList.remove("hide");
+  el.style.display="flex"; el.style.flexDirection="column"; el.style.padding="20px";
+  el.style.fontSize="11px"; el.style.letterSpacing="0"; el.style.lineHeight="1.6";
+  el.style.textAlign="left"; el.style.whiteSpace="pre-wrap"; el.style.color="#ff8a7a";
+  el.style.overflow="auto";
+  el.textContent="HATA — "+baslik+"\n\n"+(ayrinti||"");
+}
+addEventListener("error",e=>hataGoster(e.message||"bilinmeyen hata",
+  (e.filename||"")+" satır "+(e.lineno||"?")+":"+(e.colno||"?")+
+  (e.error&&e.error.stack?"\n\n"+e.error.stack.split("\n").slice(0,6).join("\n"):"")));
+addEventListener("unhandledrejection",e=>hataGoster("işlenmemis promise",
+  (e.reason&&(e.reason.stack||e.reason.message))||String(e.reason)));
+/* aşamaları işaretle: nerede takıldığı hatasız durumda bile anlaşılsın */
+let ASAMA="başlangıç";
+const asama=a=>{ ASAMA=a;
+  const el=document.getElementById("load");
+  if(el&&!el.classList.contains("hide")) el.textContent="ŞEHİR KURULUYOR · "+a; };
 
 /* ═════════════════ sabitler ═════════════════ */
 const CELL=64, ROAD=15, GRID=16, LANE=3.8, WORLD=GRID*CELL, SEA_I=GRID-1;
@@ -298,7 +320,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2, dist2=(ax,az,bx,bz)=>(ax-bx)*(ax-bx)+(az-bz)*(az-bz);
 const TMP={x:0,z:0};   /* her karede yeni nesne üretmemek için ortak tampon */
-const VERSION="2026-09-11-E";
+const VERSION="2026-09-11-F";
 let quality=MOBILE?"mid":"high";
 /* budget = ekrana çizilecek azami piksel sayısı (projeksiyon/4K için kritik) */
 const QSET={low:{px:1,shadow:false,rain:600,ped:8,dog:2,cat:2,bird:12,car:8,fog:1.35,budget:900000},
@@ -750,21 +772,21 @@ const parkList=[], roadNodes=[];
    üçe katlardı; bunun yerine tüm parçalar malzemeye göre havuzlanıp
    sonunda birleştiriliyor. Şehirdeki bütün eczane tabelaları tek mesh. */
 const KOVA=new Map();
-function kova(anahtar,yap,renkli){
+function kova(anahtar,yap,renkli,uvli){
   let k=KOVA.get(anahtar);
-  if(!k){ k={mat:yap(),parts:[],renkli:!!renkli}; KOVA.set(anahtar,k); }
+  if(!k){ k={mat:yap(),parts:[],renkli:!!renkli,uvli:!!uvli}; KOVA.set(anahtar,k); }
   return k;
 }
 let YTABAN=new THREE.Matrix4();
 const YLOK=new THREE.Matrix4();
-function yp(k,geo,x,y,z,rx,ry,rz,renk){
+function yp(k,geo,x,y,z,rx,ry,rz,renk,uv){
   trs(YLOK,x,y,z,rx,ry,rz);
-  k.parts.push({geo,m:new THREE.Matrix4().multiplyMatrices(YTABAN,YLOK),renk});
+  k.parts.push({geo,m:new THREE.Matrix4().multiplyMatrices(YTABAN,YLOK),renk,uv});
 }
 function kovalariBirlestir(){
   for(const [ad,k] of KOVA){
     if(!k.parts.length) continue;
-    const g=birlestir(k.parts,k.renkli);
+    const g=birlestir(k.parts,k.renkli,!!k.uvli);
     const me=new THREE.Mesh(g,k.mat);
     castsShadow(me); me.receiveShadow=true; scene.add(me);
     k.parts.length=0;
@@ -834,18 +856,18 @@ function kurumCephe(ad,govde,seri,dogr,pencere,kat){
       g.fillStyle=dogr; g.fillRect(px+gen/2-2,76,4,112);
     }
     const t=new THREE.CanvasTexture(c);
-    t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(3,kat); t.encoding=THREE.sRGBEncoding;
+    t.wrapS=t.wrapT=THREE.RepeatWrapping; t.encoding=THREE.sRGBEncoding;
     const c2=document.createElement("canvas"); c2.width=256; c2.height=256;
     const g2=c2.getContext("2d"); g2.fillStyle="#000"; g2.fillRect(0,0,256,256);
     for(let i=0;i<pencere;i++){ if(Math.random()<.45) continue;
       g2.fillStyle=pick(["#ffd9a0","#ffc06a","#cfe6ff","#ffe9c4"]);
       g2.fillRect(i*bo+(bo-gen)/2,76,gen,112); }
     const t2=new THREE.CanvasTexture(c2);
-    t2.wrapS=t2.wrapT=THREE.RepeatWrapping; t2.repeat.set(3,kat);
+    t2.wrapS=t2.wrapT=THREE.RepeatWrapping;
     const m=new THREE.MeshStandardMaterial({map:t,emissiveMap:t2,
       emissive:new THREE.Color(0xffd9a0),emissiveIntensity:0,roughness:.88});
     winMats.push(m); return m;
-  },false);
+  },false,true);
 }
 
 const kutuG=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
@@ -955,7 +977,7 @@ function yHastane(W,D){
   const en=ol(22,30,W), boy=ol(14,18,D), kat=ri(4,6), katY=3.5, yuk=kat*katY;
   yKaldirim(en,boy);
   yp(kurumCephe("hastane","#e4e6e4","#b9c0c2","#2b333a",6,kat),
-     kutuG(en,yuk,boy),0,yuk/2,0);
+     kutuG(en,yuk,boy),0,yuk/2,0,0,0,0,undefined,[Math.max(2,Math.round(en/7)),kat]);
   yp(K_RENK(),kutuG(en*.5,4.4,4.5),0,2.2,boy/2+2.2,0,0,0,0xd8dcdc);
   yp(K_CAM(),kutuG(en*.42,2.6,.3),0,1.6,boy/2+4.5);
   yp(K_RENK(),kutuG(en*.36,.35,4.2),-en*.22,4.2,boy/2+3.4,0,0,0,0xc23b3b);
@@ -972,7 +994,8 @@ function yHastane(W,D){
 function yOkul(W,D){
   const en=ol(26,34,W), boy=ol(11,14,D), kat=3, katY=3.5, yuk=kat*katY;
   yKaldirim(en,boy);
-  yp(kurumCephe("okul","#e4c46a","#c49f45","#3a2f1c",7,kat),kutuG(en,yuk,boy),0,yuk/2,0);
+  yp(kurumCephe("okul","#e4c46a","#c49f45","#3a2f1c",7,kat),kutuG(en,yuk,boy),0,yuk/2,0,
+     0,0,0,undefined,[Math.max(2,Math.round(en/7)),kat]);
   yp(K_RENK(),kutuG(en+.7,.5,boy+.7),0,yuk+.25,0,0,0,0,0xc23b3b);
   yp(K_RENK(),kutuG(7.5,yuk+1.2,1.6),0,(yuk+1.2)/2,boy/2+.8,0,0,0,0xf0ece2);
   yp(K_RENK(),kutuG(3.0,2.8,.3),0,1.4,boy/2+1.62,0,0,0,0x6b4a32);
@@ -1209,7 +1232,7 @@ function buildCity(){
   }
   /* Kurum yapıları için parsel ayır: seçilenler genel blok listesinden çıkarılır,
      yerlerine eczane, hastane, karakol, cami … kurulur. */
-  apartmanHazirla();
+  asama("apartman prototipleri"); apartmanHazirla();
   const tumLot=[];
   lots.forEach(arr=>arr.forEach(L=>tumLot.push(L)));
   for(let i=tumLot.length-1;i>0;i--){ const j=ri(0,i);
@@ -1226,6 +1249,7 @@ function buildCity(){
     }
   }
   for(let ci=0;ci<lots.length;ci++) lots[ci]=lots[ci].filter(L=>!L.ozel);
+  asama("kurum yapıları");
   for(const L of tumLot) if(L.ozel) kurumYerlestir(L.ozel,L);
   kovalariBirlestir();
 
@@ -2700,10 +2724,10 @@ nameEl.addEventListener("keyup",e=>e.stopPropagation());
 nameEl.addEventListener("input",()=>{ errEl.textContent=""; });
 
 /* ═════════════════ kurulum ═════════════════ */
-buildCity();
+asama("şehir"); buildCity();
 player={x:(SEA_I-2)*CELL+6,z:GRID/2*CELL+6,y:0,ang:0,tAng:0,speed:0,hitT:0};
 playerPed=newPed(PED_OYUNCU,true); playerPed.fixed=true;
-dogRig=quadRig(DOGD,Q.dog); catRig=quadRig(CATD,Q.cat);
+asama("aktörler"); dogRig=quadRig(DOGD,Q.dog); catRig=quadRig(CATD,Q.cat);
 for(let k=0;k<CARN;k++) cars.push(newCar(k,k>=Q.car,k<Q.car));
 /* son yuva oyuncunun: peds dizisine girmez, yoksa updateWorld onu gizler */
 for(let k=0;k<PED_OYUNCU;k++) peds.push(newPed(k,k<Q.ped));
@@ -2717,7 +2741,7 @@ for(const p of peds) writePed(p,0,0);
 for(const d of dogs) writeQuad(dogRig,d,0,0);
 for(const c of cats) writeQuad(catRig,c,0,0);
 carFlush(); rigFlush(pedMesh); rigFlush(dogRig); rigFlush(catRig);
-makeBirds(); makeRain(); makeSmoke(); applyTime();
+asama("hava ve ışık"); makeBirds(); makeRain(); makeSmoke(); applyTime();
 document.getElementById("load").classList.add("hide");
 feed("Gün batımı. Liman sakin.","yalıkent");
 loadCfg().then(()=>{ if(playerName) nameEl.value=playerName;
