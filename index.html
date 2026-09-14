@@ -10,7 +10,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./yalikent-icon-192.png">
 <link rel="apple-touch-icon" href="./yalikent-icon-192.png">
-<title>YALIKENT — Açık Dünya v0.8.2 (2026-09-11-G)</title>
+<title>YALIKENT — Açık Dünya v0.8.3 (2026-09-11-H)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -209,7 +209,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 <div id="menu" class="hide">
   <div class="panel">
     <div class="full">
-      <div class="lbl">Sinematik açık dünya · v0.8.2</div>
+      <div class="lbl">Sinematik açık dünya · v0.8.3</div>
       <h1>YALI<b>KENT</b></h1>
       <p class="note">Liman şehri. Gün batıyor, martılar alçalıyor, sokak lambaları yanmak üzere.
       İş al, para kazan, hava değişsin diye bekle.</p>
@@ -246,7 +246,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
       <button class="ghost" id="wipe">Kaydı sil</button>
     </div>
     <p class="note full" style="margin-top:8px">
-      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-G</b> ·
+      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-H</b> ·
       Oyuncu: <b style="color:var(--teal)" id="menuName">—</b><br>
       Fare için tuvale tıkla · <b style="color:var(--paper)">Esc</b> menü ·
       <b style="color:var(--paper)">T</b> zamanı hızlandır ·
@@ -265,14 +265,14 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 </div>
 <div id="gate">
   <div class="gbox">
-    <div class="lbl">Sinematik açık dünya · v0.8.2</div>
+    <div class="lbl">Sinematik açık dünya · v0.8.3</div>
     <h1>YALI<b>KENT</b></h1>
     <label class="gl" for="pname">İsmini yaz</label>
     <input id="pname" type="text" maxlength="16" placeholder="örn. Deniz"
            autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="gerr" id="gerr"></div>
     <button class="cta" id="gstart">Devam</button>
-    <div class="gver">Yüklü sürüm: <b>2026-09-11-G</b></div>
+    <div class="gver">Yüklü sürüm: <b>2026-09-11-H</b></div>
   </div>
 </div>
 <div id="load">Şehir kuruluyor</div>
@@ -320,7 +320,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2, dist2=(ax,az,bx,bz)=>(ax-bx)*(ax-bx)+(az-bz)*(az-bz);
 const TMP={x:0,z:0};   /* her karede yeni nesne üretmemek için ortak tampon */
-const VERSION="2026-09-11-G";
+const VERSION="2026-09-11-H";
 let quality=MOBILE?"mid":"high";
 /* budget = ekrana çizilecek azami piksel sayısı (projeksiyon/4K için kritik) */
 const QSET={low:{px:1,shadow:false,rain:600,ped:8,dog:2,cat:2,bird:12,car:8,fog:1.35,budget:900000},
@@ -830,7 +830,7 @@ function tabelaKova(yazi,zemin,murekkep,ikon){
     const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
     return new THREE.MeshStandardMaterial({map:t,emissiveMap:t,
       emissive:new THREE.Color(0xffffff),emissiveIntensity:.45,roughness:.7});
-  },false);
+  },false,true);   /* dokulu malzeme: birleştirilmiş geometride UV şart */
 }
 function tabela(en,y,z,yazi,zemin,murekkep,ikon,oran){
   const w=en*(oran||.6);
