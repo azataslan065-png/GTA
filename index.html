@@ -10,7 +10,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./yalikent-icon-192.png">
 <link rel="apple-touch-icon" href="./yalikent-icon-192.png">
-<title>YALIKENT — Açık Dünya v0.8.1 (2026-09-11-F)</title>
+<title>YALIKENT — Açık Dünya v0.8.2 (2026-09-11-G)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -209,7 +209,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 <div id="menu" class="hide">
   <div class="panel">
     <div class="full">
-      <div class="lbl">Sinematik açık dünya · v0.8.1</div>
+      <div class="lbl">Sinematik açık dünya · v0.8.2</div>
       <h1>YALI<b>KENT</b></h1>
       <p class="note">Liman şehri. Gün batıyor, martılar alçalıyor, sokak lambaları yanmak üzere.
       İş al, para kazan, hava değişsin diye bekle.</p>
@@ -246,7 +246,7 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
       <button class="ghost" id="wipe">Kaydı sil</button>
     </div>
     <p class="note full" style="margin-top:8px">
-      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-F</b> ·
+      Yüklü sürüm: <b style="color:var(--amber)">2026-09-11-G</b> ·
       Oyuncu: <b style="color:var(--teal)" id="menuName">—</b><br>
       Fare için tuvale tıkla · <b style="color:var(--paper)">Esc</b> menü ·
       <b style="color:var(--paper)">T</b> zamanı hızlandır ·
@@ -265,14 +265,14 @@ body.lite #vig{box-shadow:inset 0 0 18vmax rgba(4,5,10,.72)}
 </div>
 <div id="gate">
   <div class="gbox">
-    <div class="lbl">Sinematik açık dünya · v0.8.1</div>
+    <div class="lbl">Sinematik açık dünya · v0.8.2</div>
     <h1>YALI<b>KENT</b></h1>
     <label class="gl" for="pname">İsmini yaz</label>
     <input id="pname" type="text" maxlength="16" placeholder="örn. Deniz"
            autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="gerr" id="gerr"></div>
     <button class="cta" id="gstart">Devam</button>
-    <div class="gver">Yüklü sürüm: <b>2026-09-11-F</b></div>
+    <div class="gver">Yüklü sürüm: <b>2026-09-11-G</b></div>
   </div>
 </div>
 <div id="load">Şehir kuruluyor</div>
@@ -320,7 +320,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2, dist2=(ax,az,bx,bz)=>(ax-bx)*(ax-bx)+(az-bz)*(az-bz);
 const TMP={x:0,z:0};   /* her karede yeni nesne üretmemek için ortak tampon */
-const VERSION="2026-09-11-F";
+const VERSION="2026-09-11-G";
 let quality=MOBILE?"mid":"high";
 /* budget = ekrana çizilecek azami piksel sayısı (projeksiyon/4K için kritik) */
 const QSET={low:{px:1,shadow:false,rain:600,ped:8,dog:2,cat:2,bird:12,car:8,fog:1.35,budget:900000},
@@ -541,7 +541,6 @@ if(MOBILE){
   const tapB=(id,act)=>{ const el=document.getElementById(id);
     el.addEventListener("touchstart",e=>{e.preventDefault();tapBtn[act]=true;},{passive:false}); };
   holdBtn("tGas","sprint"); holdBtn("tBrk","brake");
-  kontrolModu();
   tapB("tUse","use"); tapB("tHorn","horn"); tapB("tCam","cam"); tapB("tJob","job"); tapB("tMenu","menu");
 }
 
@@ -2727,6 +2726,7 @@ nameEl.addEventListener("input",()=>{ errEl.textContent=""; });
 asama("şehir"); buildCity();
 player={x:(SEA_I-2)*CELL+6,z:GRID/2*CELL+6,y:0,ang:0,tAng:0,speed:0,hitT:0};
 playerPed=newPed(PED_OYUNCU,true); playerPed.fixed=true;
+kontrolModu();   /* tuş düzenini başlangıç moduna göre kur */
 asama("aktörler"); dogRig=quadRig(DOGD,Q.dog); catRig=quadRig(CATD,Q.cat);
 for(let k=0;k<CARN;k++) cars.push(newCar(k,k>=Q.car,k<Q.car));
 /* son yuva oyuncunun: peds dizisine girmez, yoksa updateWorld onu gizler */
